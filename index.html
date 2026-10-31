@@ -1,0 +1,1104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#071d21">
+<title>Staff Rotation | Cabo Real Surf Club</title>
+<style>
+:root{--bg:#071d21;--panel:#0d282e;--panel2:#123238;--line:#24474e;--cyan:#51c5d8;--text:#e4f2f4;--muted:#9bb8be;--yellow:#ffd84f;--green:#22b486;--red:#ff8b83}
+*{box-sizing:border-box}html{background:var(--bg)}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.45}
+button,input,select{font:inherit}button{cursor:pointer}
+header{padding:20px clamp(14px,4vw,42px);background:#0d292f;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+.kicker{color:var(--muted);letter-spacing:.16em;font-weight:800;font-size:.78rem}.brand{font-size:clamp(2rem,5vw,3rem);font-weight:850;letter-spacing:-.04em;line-height:1.15;margin:5px 0 18px}.brand span{color:var(--cyan)}
+.schedule-week{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:-8px 0 16px;padding:9px 12px;border:1px solid #2b5961;border-radius:12px;background:#102f35;color:#d9f6f8;font-size:.92rem;font-weight:800}
+.schedule-week .week-label{color:var(--cyan);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase}
+.schedule-week .week-status{margin-left:auto;color:#9bb8be;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase}
+@media(max-width:520px){.schedule-week{font-size:.8rem;padding:8px 9px}.schedule-week .week-status{margin-left:0}}
+.tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.tab{border:0;border-radius:18px;padding:13px 8px;background:var(--panel2);color:var(--muted);font-weight:800}.tab.active{background:var(--cyan);color:#062b32}
+.connection{display:flex;gap:9px;align-items:center;color:var(--muted);margin-top:16px}.dot{width:10px;height:10px;border-radius:50%;background:#85979a}.dot.ok{background:var(--green)}.dot.bad{background:var(--red)}
+main{padding:22px clamp(14px,4vw,42px) 40px;max-width:1500px;margin:auto}.section-title{font-size:.88rem;color:var(--muted);letter-spacing:.12em;font-weight:850;text-transform:uppercase;margin:0 0 12px}
+.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:18px}.toolbar select,.toolbar input{background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:12px;padding:10px 12px;min-height:44px}.toolbar label{color:var(--muted);font-size:.9rem}
+.pills{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:22px}.pill{border:2px solid var(--line);background:#102b30;color:var(--text);border-radius:999px;padding:10px 16px;font-weight:750}.pill.selected{background:var(--yellow);border-color:#aa8910;color:#294047}.pill:focus-visible,.tab:focus-visible,button:focus-visible{outline:3px solid white;outline-offset:2px}
+.status-card,.card{border:1px solid var(--line);background:var(--panel);border-radius:22px;padding:18px;margin:18px 0}.status-card h2{font-size:clamp(1.5rem,4vw,2.25rem);line-height:1.12;margin:4px 0 8px}.muted{color:var(--muted)}.clock-row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:#102b30;border:1px solid var(--line);border-radius:16px;padding:12px 16px;margin-top:16px}.clock{font-size:1.8rem;font-weight:850;font-variant-numeric:tabular-nums}
+.map-card{border:1px solid var(--line);background:var(--panel);border-radius:22px;padding:14px;margin:14px 0 20px}.map-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 8px}.map-heading h2{font-size:1.15rem;margin:0}.map-note{font-size:.82rem;color:var(--muted)}.site-map{display:block;width:100%;height:auto;max-height:560px}.map-zone{fill:#092f39;stroke:#65c5d7;stroke-width:2}.map-building{fill:#17383d;stroke:#80d5e1;stroke-width:2}.map-label{fill:#e4f2f4;font-size:15px;font-weight:800;text-anchor:middle}.map-sub{fill:#a9e8f1;font-size:12px;text-anchor:middle}.map-person{fill:#ffd84f;font-size:14px;font-weight:850;text-anchor:middle}.map-water{fill:#0d4654;stroke:#246778;stroke-width:5}.map-land{fill:#102b30;stroke:#24474e;stroke-width:2}.map-staff{cursor:pointer}
+
+
+.daily-crew-panel{margin:18px 0;background:#061b2a;border:1px solid #234353;border-radius:15px;padding:14px}
+.daily-crew-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.crew-summary{border:1px solid #284b5a;border-radius:12px;overflow:hidden;background:#0b2735;min-width:0}
+.crew-summary h3{font-size:.88rem;margin:0;padding:11px 12px;color:white;letter-spacing:.05em}
+.crew-summary.am h3{background:#14794b}.crew-summary.pm h3{background:#1457a6}.crew-summary.off h3{background:#5c6370}
+.crew-names{padding:12px;display:flex;flex-wrap:wrap;gap:7px;min-height:66px;color:#e4f2f4}
+.crew-name{border:1px solid #3c6371;background:#123744;border-radius:999px;padding:6px 10px;font-size:.85rem;font-weight:750}
+.crew-empty{color:#9bb8be;font-size:.86rem;font-style:italic}
+@media(max-width:600px){.daily-crew-grid{grid-template-columns:1fr}.crew-names{min-height:44px}}
+
+.dashboard-grid{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(310px,1fr);gap:14px;margin:14px 0}
+.dash-panel{min-width:0;background:#061b2a;border:1px solid #234353;border-radius:15px;padding:12px;overflow:hidden}
+.panel-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px;flex-wrap:wrap}
+.panel-heading h2{font-size:1.05rem;letter-spacing:.04em;margin:0;font-weight:900}
+.panel-heading>strong{color:#66cde5;font-size:1.05rem}
+.assignment-cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.assignment-card{overflow:hidden;border-radius:10px;border:2px solid var(--accent);background:#e9f3f8;color:#081e2b;min-width:0;display:flex;flex-direction:column}
+.assignment-card.green{--accent:#15975a}.assignment-card.blue{--accent:#1267d5}.assignment-card.orange{--accent:#ee531c}.assignment-card.purple{--accent:#7a22cc}.assignment-card.pink{--accent:#d41465}
+.assignment-head{display:flex;align-items:center;gap:6px;background:var(--accent);color:white;padding:6px;min-height:50px}
+.assignment-head>span{display:grid;place-items:center;background:#fff;color:var(--accent);font-weight:950;border-radius:50%;width:27px;height:27px;flex:0 0 27px}
+.assignment-head b{font-size:clamp(.56rem,.85vw,.8rem);line-height:1.05;display:block}.assignment-head small{font-size:.7rem;display:block;opacity:.92;margin-top:3px}
+.assignment-visual{height:76px;display:grid;place-items:center;background:linear-gradient(145deg,#c9e7ed,#6ab5cb);font-size:2.2rem}
+.assignment-name{background:#fff;text-align:center;font-weight:900;padding:7px 3px;font-size:.88rem;overflow-wrap:anywhere;min-height:34px}
+.rotation-wheel{position:relative;min-height:220px;max-width:460px;margin:0 auto}
+.wheel-node{position:absolute;width:38%;min-height:54px;border-radius:9px;padding:7px 5px;color:white;text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px;border:1px solid #ffffff66;box-shadow:0 3px 9px #0005}
+.wheel-node span{font-weight:950;background:#fff;color:#092033;border-radius:50%;width:22px;height:22px;display:grid;place-items:center;font-size:.8rem}
+.wheel-node b{font-size:.67rem}.wheel-node strong{font-size:.72rem;overflow-wrap:anywhere}
+.wheel-node.n1{background:#095cc7;left:31%;top:0}.wheel-node.n2{background:#095cc7;right:0;top:30%}.wheel-node.n3{background:#e94d15;right:12%;bottom:0}.wheel-node.n4{background:#148b49;left:12%;bottom:0}.wheel-node.n5{background:#148b49;left:0;top:30%}
+.wheel-arrow{position:absolute;color:#fff;font-size:2rem;font-weight:900;line-height:1}.a12{right:20%;top:17%;transform:rotate(12deg)}.a23{right:16%;top:59%;transform:rotate(28deg)}.a34{left:44%;bottom:13%;transform:rotate(-15deg)}.a45{left:16%;top:59%;transform:rotate(-30deg)}.a51{left:21%;top:17%;transform:rotate(-12deg)}
+.schedule-table{overflow:auto;max-height:370px;border-radius:8px}.schedule-table table{min-width:650px;font-size:.83rem}.schedule-table th{background:#0d354a;color:#fff}.schedule-table td{background:#f0f5f8;color:#102637;padding:7px 9px;border-color:#bfd0dc}.schedule-table tr:nth-child(even) td{background:#dceaf1}.schedule-table tr.selected td{background:#c5f0df;font-weight:900}.schedule-table td button{color:#0b5474}
+.next-cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}.next-cards .assignment-head{padding:5px 3px;gap:3px;min-height:58px;align-items:flex-start}.next-cards .assignment-head>span{width:20px;height:20px;flex-basis:20px;font-size:.7rem}.next-cards .assignment-head b{font-size:.59rem}.next-cards .assignment-head small{font-size:.56rem}.next-cards .assignment-visual{height:58px;font-size:1.6rem}.next-cards .assignment-name{font-size:.7rem;padding:5px 2px}
+.reference-map .aerial-stage{border-radius:8px}.reference-map .aerial-image{width:100%;aspect-ratio:1536/445;object-fit:cover}
+
+.aerial-stage{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:16px;background:#102b30}
+.aerial-image{display:block;width:100%;height:auto}
+.map-live.highlight{background:#ffd84f;color:#21383d;border-color:#ffd84f}.map-live{position:absolute;z-index:2;max-width:22%;overflow-wrap:anywhere;text-align:center;padding:5px 8px;border-radius:10px;background:#071d21ed;border:1px solid #7de3ef;color:#fff;font-size:clamp(9px,1.3vw,15px);font-weight:850;box-shadow:0 3px 12px #0008;transform:translate(-50%,-50%);min-width:34px}
+.map-pusher{left:26%;top:28%}.map-catcher{left:61%;top:39%}.map-board-a{left:48%;top:61%}.map-board-b{left:65%;top:54%}.map-tower{left:15%;top:76%}.map-break{left:81%;top:82%}.map-extra{left:83%;top:50%}
+.flow-card{border:1px solid var(--line);background:var(--panel);border-radius:22px;padding:16px;margin:18px 0}
+.flow-track{display:flex;align-items:stretch;gap:8px;overflow-x:auto;padding:6px 2px 12px}
+.flow-node{position:relative;display:flex;flex:1 0 135px;flex-direction:column;gap:4px;border:1px solid var(--line);background:#102b30;border-radius:15px;padding:12px;min-height:112px}
+.flow-node>span{display:grid;place-items:center;width:25px;height:25px;border-radius:50%;background:var(--cyan);color:#062b32;font-weight:900}
+.flow-node b{font-size:.9rem}.flow-node small{color:var(--muted)}.flow-node strong{color:var(--yellow);font-size:.9rem;overflow-wrap:anywhere}
+.flow-arrow{align-self:center;color:var(--cyan);font-size:1.6rem;font-weight:900;animation:flowPulse 1.4s ease-in-out infinite}
+.flow-node.active{border-color:var(--yellow);box-shadow:0 0 0 2px #ffd84f40}
+.flow-caption{color:var(--muted);font-size:.85rem}
+@keyframes flowPulse{0%,100%{opacity:.45;transform:translateX(0)}50%{opacity:1;transform:translateX(3px)}}
+
+.zone-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.zone{border:1px solid #7bc8d355;background:#092f39c9;border-radius:15px;padding:12px;min-height:82px}.zone h4{font-size:.78rem;letter-spacing:.04em;color:#a9e8f1;margin:0 0 8px}.staff-tags{display:flex;flex-wrap:wrap;gap:6px}.staff-tag{font-size:.86rem;background:#51c5d822;border:1px solid #74d7e455;padding:4px 8px;border-radius:9px;color:var(--text)}.staff-tag.highlight{background:var(--yellow);color:#21383d;border-color:var(--yellow)}.positions-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px}.location-card{border:1px solid var(--line);border-radius:18px;background:var(--panel);padding:14px}.location-card h3{margin:0 0 9px;font-size:1rem}.empty{color:var(--muted);font-size:.88rem;font-style:italic}
+.notice{background:#352d13;border:1px solid #79641c;color:#ffe99b;border-radius:14px;padding:12px 14px;margin:12px 0}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:16px;margin-top:14px}.schedule-table{overflow-x:auto;max-width:100%;border-radius:12px}.schedule-table table{min-width:1350px;table-layout:auto}.schedule-table th,.schedule-table td{white-space:normal;min-width:105px}table{border-collapse:collapse;width:100%;min-width:620px;background:var(--panel)}th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line)}th{color:var(--muted);font-size:.82rem;background:#102b30;position:sticky;top:0}tr:last-child td{border-bottom:0}td button{border:0;background:transparent;color:var(--cyan);font-weight:750;padding:0;text-align:left}
+.team-highlight-label{font-size:.76rem;font-weight:850;letter-spacing:.14em;color:var(--muted);margin:14px 0 10px}.team-caption{color:var(--muted);font-size:.9rem;margin:6px 0 12px}.team-caption strong{color:var(--text)}.team-pills{margin-bottom:12px}.team-grid{min-width:720px}.team-grid th,.team-grid td{padding:9px 10px;text-align:center;white-space:nowrap}.team-grid th:first-child,.team-grid td:first-child{text-align:left;position:sticky;left:0;background:#102b30;z-index:1}.team-grid th:first-child{z-index:2}.team-grid .team-name-btn{color:var(--text);font-weight:800}.team-grid tr.highlighted td{background:#686b3a;color:#fff}.team-grid tr.highlighted td:first-child{background:#686b3a}.team-grid tr.highlighted .team-name-btn{color:#fff}.shift-badge{display:inline-block;min-width:42px;padding:5px 8px;border-radius:9px;font-size:.78rem;font-weight:850;text-align:center}.shift-am{background:#574318;color:#ffe49a}.shift-pm{background:#292b63;color:#d8d9ff}.shift-off{color:#66858b}team-total{font-weight:850;color:var(--muted)}.hidden{display:none!important}.empty-state{border:1px dashed var(--line);border-radius:18px;padding:22px;color:var(--muted)}footer{max-width:1500px;margin:auto;padding:0 clamp(14px,4vw,42px) 28px;color:var(--muted);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:.85rem}
+@media(max-width:780px){.dashboard-grid{grid-template-columns:1fr}.assignment-cards,.next-cards{grid-template-columns:repeat(5,minmax(112px,1fr));overflow-x:auto;padding-bottom:4px}.assignment-cards{display:grid}.flow-panel{min-height:300px}.rotation-wheel{min-height:230px}.reference-map .aerial-image{aspect-ratio:1536/445;min-height:160px}header{padding-top:16px}.positions-grid{grid-template-columns:1fr 1fr}.site-map{max-height:none}.tab{font-size:.92rem;padding:12px 5px}.card{padding:14px}.map-card{padding:10px}}
+@media(max-width:460px){.panel-heading h2{font-size:.9rem}.wheel-node{width:40%}.wheel-node b{font-size:.6rem}.wheel-node strong{font-size:.65rem}.positions-grid{grid-template-columns:1fr}.zone-grid{grid-template-columns:1fr}.tabs{gap:6px}.tab{font-size:.82rem}.map-label{font-size:17px}.map-sub{font-size:14px}.map-person{font-size:15px}}
+
+
+/* Compact roster layout matched to the reference screen */
+body{font-size:14px}
+header{position:relative;padding:12px 16px 10px;background:#071d21;border-bottom:1px solid #173e48}
+.kicker{font-size:.65rem;letter-spacing:.18em}
+.brand{font-size:1.45rem;margin:2px 0 10px;letter-spacing:-.035em}
+.tabs{gap:6px}.tab{font-size:.78rem;padding:10px 4px;border-radius:9px}
+.connection{font-size:.72rem;margin-top:8px}
+main{max-width:1180px;padding:10px 16px 26px}
+.section-title{font-size:.72rem;letter-spacing:.1em;margin:7px 0}
+.pills{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 10px}
+.pills .pill{font-size:.74rem;padding:7px 10px;border:1px solid #284a54;background:#102b30;color:#e4f2f4}
+.pills .pill.selected{background:var(--yellow);border-color:var(--yellow);color:#24353b}
+.name-match-highlight{background:var(--yellow)!important;color:#24353b!important;border-color:var(--yellow)!important;border-radius:6px;box-shadow:0 0 0 2px #ffd84f55;font-weight:950!important}
+#hourlySchedule td.name-match-highlight{border-radius:0;box-shadow:inset 0 0 0 2px #b99600}
+.day-buttons{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin:8px 0 6px}
+.day-btn,.hour-btn{border:1px solid #284a54;background:#0e2930;color:#d6e7eb;border-radius:8px;padding:9px 2px;font-weight:800;font-size:.75rem;min-width:0}
+.day-btn.active,.hour-btn.active{background:var(--cyan);color:#062b32;border-color:var(--cyan)}
+.hour-buttons{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px;margin:0 0 10px}
+.hour-btn{padding:8px 1px;font-size:.7rem}
+.map-card{padding:0;border:0;background:transparent;border-radius:10px;margin:0 0 10px}
+.map-heading{display:none}.reference-map .aerial-stage{border-radius:9px;overflow:hidden}
+.reference-map .aerial-image{display:block;width:100%;height:auto;aspect-ratio:1536/445;object-fit:cover}
+.map-live{display:none!important}
+.dashboard-grid{grid-template-columns:minmax(0,1.45fr) minmax(240px,.9fr);gap:8px;margin:8px 0}
+.dash-panel{border-radius:11px;padding:8px;background:#071d2b}
+.panel-heading{margin-bottom:7px;align-items:baseline}
+.panel-heading h2{font-size:.83rem;letter-spacing:0}
+.panel-heading>strong{font-size:.8rem}
+.assignment-cards{grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+.assignment-card{border-radius:7px;border-width:2px}
+.assignment-head{padding:4px 3px;gap:4px;min-height:38px}
+.assignment-head>span{width:19px;height:19px;flex-basis:19px;font-size:.72rem}
+.assignment-head b{font-size:clamp(.48rem,.78vw,.7rem)}
+.assignment-head small{font-size:.58rem;line-height:1.05}
+.assignment-visual{height:72px;background:linear-gradient(#d8e9e7,#91c8c5);display:flex;align-items:flex-end;justify-content:center;padding-top:10px}
+.person-icon{position:relative;display:block;width:32px;height:40px;margin:0 auto}
+.person-icon:before{content:"";position:absolute;top:0;left:10px;width:12px;height:12px;border-radius:50%;background:var(--silhouette,#4d8c78);border:0}
+.person-icon:after{content:"";position:absolute;bottom:0;left:2px;width:28px;height:21px;border-radius:50% 50% 0 0;background:var(--silhouette,#4d8c78);border:0}
+.assignment-card.green{--silhouette:#4d8c68}
+.assignment-card.blue{--silhouette:#4e70b2}
+.assignment-card.orange{--silhouette:#b96d4c}
+.assignment-card.purple{--silhouette:#8d5cb2}
+.assignment-card.pink{--silhouette:#b84778}
+.assignment-name{padding:5px 2px;min-height:27px;font-size:.75rem}
+.rotation-wheel{min-height:190px}
+.wheel-node{min-height:43px;padding:5px 3px;gap:1px}
+.wheel-node span{width:17px;height:17px;font-size:.65rem}
+.wheel-node b{font-size:.55rem}.wheel-node strong{font-size:.58rem}
+.wheel-arrow{font-size:1.5rem}
+.flow-caption{font-size:.7rem;margin-top:3px}
+.schedule-table{max-height:450px}
+.schedule-table table{min-width:540px;font-size:.72rem}
+.schedule-table th,.schedule-table td{padding:5px 6px}
+.next-cards{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+.next-cards .assignment-head{padding:4px 2px;gap:2px;min-height:44px}
+.next-cards .assignment-head>span{width:16px;height:16px;flex-basis:16px;font-size:.6rem}
+.next-cards .assignment-head b{font-size:.48rem}.next-cards .assignment-head small{font-size:.46rem}
+.next-cards .assignment-visual{height:52px}.next-cards .assignment-name{font-size:.62rem;padding:4px 1px}
+.zone-grid,.positions-grid,.status-card{display:none!important}
+@media(max-width:620px){
+  header{padding:10px 8px}.brand{font-size:1.18rem}.kicker{font-size:.58rem}
+  .tab{font-size:.66rem;padding:9px 2px}
+  main{padding:8px 8px 24px}
+  .pills{gap:4px}.pills .pill{font-size:.66rem;padding:6px 8px}
+  .hour-buttons{grid-template-columns:repeat(12,minmax(0,1fr));gap:3px}
+  .hour-btn{font-size:.6rem;padding:7px 0}
+  .dashboard-grid{grid-template-columns:minmax(0,1.45fr) minmax(0,.9fr);gap:6px}
+  .dash-panel{padding:6px}
+  .panel-heading h2{font-size:.68rem}.panel-heading>strong{font-size:.65rem}
+  .assignment-cards{grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;overflow:visible}
+  .assignment-card{border-radius:5px;border-width:1px}
+  .assignment-head{align-items:flex-start;min-height:32px;padding:3px 2px;gap:2px}
+  .assignment-head>span{width:14px;height:14px;flex-basis:14px;font-size:.52rem}
+  .assignment-head b{font-size:.4rem;line-height:1.05}.assignment-head small{font-size:.38rem;line-height:1.05;margin-top:2px}
+  .assignment-visual{height:45px;padding-top:3px}
+  .person-icon{transform:scale(.72);transform-origin:bottom center;height:32px}
+  .assignment-name{font-size:.57rem;padding:3px 1px;min-height:21px}
+  .rotation-wheel{min-height:170px}
+  .wheel-node{width:39%;min-height:38px}.wheel-node b{font-size:.43rem}.wheel-node strong{font-size:.48rem}
+  .wheel-arrow{font-size:1.15rem}
+  .schedule-table table{min-width:470px;font-size:.64rem}
+  .schedule-table th,.schedule-table td{padding:4px 5px}
+  .next-cards{grid-template-columns:repeat(4,minmax(0,1fr));overflow-x:auto}
+  .next-cards .assignment-card{min-width:50px}
+  .next-cards .assignment-head b{font-size:.42rem}.next-cards .assignment-head small{font-size:.4rem}
+  .next-cards .assignment-visual{height:42px}.next-cards .assignment-name{font-size:.56rem}
+}
+
+
+/* Final compact sizing pass: keep the whole board close to the reference proportions */
+main{padding-top:8px;padding-bottom:14px}
+header .brand{margin-bottom:8px}
+.dashboard-grid{align-items:start}
+.current-panel,.next-panel{min-width:0}
+.daily-crew-panel{margin:10px 0 4px;padding:8px;border-radius:10px}
+.daily-crew-panel .panel-heading{margin-bottom:5px}
+.daily-crew-panel .panel-heading h2{font-size:.76rem}
+.daily-crew-panel .panel-heading>strong{font-size:.7rem}
+.daily-crew-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.crew-summary{border-radius:8px}
+.crew-summary h3{font-size:.68rem;padding:7px 6px}
+.crew-names{padding:6px;gap:4px;min-height:34px}
+.crew-name{font-size:.65rem;padding:3px 6px}
+.crew-empty{font-size:.65rem}
+@media(max-width:620px){
+  main{padding:7px 7px 12px}
+  .daily-crew-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+  .daily-crew-panel{padding:6px;margin-top:8px}
+  .daily-crew-panel .panel-heading h2{font-size:.62rem}
+  .daily-crew-panel .panel-heading>strong{font-size:.58rem}
+  .crew-summary h3{font-size:.56rem;padding:6px 3px;letter-spacing:0}
+  .crew-names{padding:4px;gap:3px;min-height:28px}
+  .crew-name{font-size:.56rem;padding:3px 4px;border-radius:6px}
+  .crew-empty{font-size:.55rem}
+  .map-card{margin-bottom:7px}
+  .dashboard-grid{margin:6px 0;gap:5px}
+}
+
+/* Final reference-match adjustments requested */
+#partyNotice{display:none!important}
+.pills{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 9px}
+.pills .pill{font-size:12px;line-height:1.1;padding:7px 10px;white-space:nowrap}
+@media(min-width:620px){.pills{max-width:100%}}
+.rotation-wheel{height:158px;min-height:158px;max-width:270px}
+.wheel-node{width:29%;min-height:38px;padding:4px 3px;border-radius:6px;box-shadow:none;gap:0}
+.wheel-node span{width:16px;height:16px;font-size:10px}
+.wheel-node b{font-size:8px;line-height:1.05}
+.wheel-node strong{display:none!important}
+.wheel-node.n1{left:35%;top:0}
+.wheel-node.n2{right:0;top:32%}
+.wheel-node.n3{right:13%;bottom:0}
+.wheel-node.n4{left:13%;bottom:0}
+.wheel-node.n5{left:0;top:32%}
+.wheel-arrow{font-size:17px;line-height:1;animation:none}
+.a12{right:24%;top:19%;transform:rotate(0deg)}.a23{right:10%;top:61%;transform:rotate(0deg)}.a34{left:46%;bottom:7%;transform:rotate(0deg)}.a45{left:22%;top:61%;transform:rotate(0deg)}.a51{left:25%;top:19%;transform:rotate(0deg)}
+.flow-caption{font-size:10px;margin-top:0}
+@media(max-width:620px){
+ .pills{gap:4px;margin-bottom:8px}
+ .pills .pill{font-size:11px;padding:6px 8px}
+ .rotation-wheel{height:150px;min-height:150px;max-width:230px}
+ .wheel-node{width:31%;min-height:34px}
+ .wheel-node b{font-size:7px}
+ .wheel-arrow{font-size:13px;color:#fff}
+ .a12{right:23%;top:20%}.a23{right:9%;top:61%}.a34{left:46%;bottom:7%}.a45{left:22%;top:61%}.a51{left:25%;top:20%}
+ .flow-caption{font-size:9px}
+ .hour-buttons{grid-template-columns:repeat(12,minmax(0,1fr));gap:3px}
+ .hour-btn{font-size:11px;padding:7px 0}
+}
+
+/* Extra compact mobile reference sizing */
+@media(max-width:620px){
+  body{font-size:12px;line-height:1.28}
+  header{padding:7px 8px 6px}
+  .brand{font-size:1rem;margin:1px 0 6px}
+  .kicker{font-size:.5rem}
+  .tabs{gap:4px}.tab{font-size:.6rem;padding:7px 2px;border-radius:7px}
+  .connection{font-size:.62rem;margin-top:5px}
+  main{padding:5px 7px 9px}
+  .section-title{font-size:.6rem;margin:5px 0}
+  .pills{gap:3px;margin-bottom:6px}
+  .pills .pill{font-size:10px;padding:5px 7px;line-height:1}
+  .day-buttons{gap:3px;margin:5px 0 4px}
+  .day-btn,.hour-btn{font-size:.62rem;padding:6px 0;border-radius:6px}
+  .hour-buttons{gap:2px;margin-bottom:6px}
+  .map-card{margin-bottom:5px}
+  .reference-map .aerial-stage{border-radius:7px}
+  .dashboard-grid{grid-template-columns:minmax(0,1.45fr) minmax(0,.9fr);gap:5px;margin:5px 0}
+  .dash-panel{padding:5px;border-radius:9px}
+  .panel-heading{margin-bottom:4px;gap:3px}
+  .panel-heading h2{font-size:.61rem;line-height:1.1}
+  .panel-heading>strong{font-size:.58rem}
+  .current-panel .assignment-cards{grid-template-columns:repeat(5,minmax(0,1fr));gap:2px}
+  .current-panel .assignment-card{border-width:1px;border-radius:4px}
+  .current-panel .assignment-head{min-height:28px;padding:2px 1px;gap:1px}
+  .current-panel .assignment-head>span{width:12px;height:12px;flex-basis:12px;font-size:.48rem}
+  .current-panel .assignment-head b{font-size:.36rem;line-height:1}
+  .current-panel .assignment-head small{font-size:.34rem;line-height:1;margin-top:1px}
+  .current-panel .assignment-visual{height:24px;padding-top:0}
+  .current-panel .person-icon{transform:scale(.42);transform-origin:bottom center;height:20px}
+  .current-panel .assignment-name{font-size:.48rem;padding:2px 1px;min-height:15px}
+  .rotation-wheel{height:126px;min-height:126px;max-width:100%}
+  .wheel-node{min-height:29px;padding:3px 1px;border-radius:4px}
+  .wheel-node span{width:13px;height:13px;font-size:8px}
+  .wheel-node b{font-size:6px;line-height:1}
+  .wheel-arrow{font-size:11px}
+  .flow-caption{font-size:8px}
+  .schedule-table{max-height:350px}
+  .schedule-table table{min-width:400px;font-size:.57rem}
+  .schedule-table th,.schedule-table td{padding:3px 4px}
+  .next-cards{grid-template-columns:repeat(4,minmax(0,1fr));gap:2px}
+  .next-cards .assignment-head{min-height:33px;padding:2px 1px}
+  .next-cards .assignment-head>span{width:12px;height:12px;flex-basis:12px;font-size:.46rem}
+  .next-cards .assignment-head b{font-size:.34rem}.next-cards .assignment-head small{font-size:.32rem}
+  .next-cards .assignment-visual{height:35px}.next-cards .assignment-name{font-size:.48rem;padding:2px 1px}
+  .daily-crew-panel{margin:6px 0 3px;padding:5px}
+  .daily-crew-panel .panel-heading h2{font-size:.58rem}
+  .daily-crew-panel .panel-heading>strong{font-size:.54rem}
+  .crew-summary h3{font-size:.5rem;padding:4px 2px}
+  .crew-names{padding:3px;gap:2px}
+  .crew-name{font-size:.5rem;padding:2px 3px}
+  footer{padding:0 8px 10px;font-size:.65rem}
+}
+
+
+/* Special 11 AM pool-party coverage: show all ten positions compactly. */
+.assignment-cards.party-coverage-cards{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+.party-coverage-cards .assignment-card{min-width:0}
+.party-coverage-cards .assignment-head{min-height:32px;padding:3px 2px;gap:2px}
+.party-coverage-cards .assignment-head b{font-size:.48rem}
+.party-coverage-cards .assignment-head small{font-size:.52rem}
+.party-coverage-cards .assignment-visual{height:42px}
+.party-coverage-cards .person-icon{transform:scale(.72);transform-origin:bottom center}
+.party-coverage-cards .assignment-name{font-size:.62rem;min-height:22px;padding:3px 1px;overflow-wrap:anywhere}
+
+/* High-contrast colors for the 10-position pool-party cards. */
+.party-coverage-cards .assignment-card.green{--accent:#087443}
+.party-coverage-cards .assignment-card.blue{--accent:#0754b8}
+.party-coverage-cards .assignment-card.orange{--accent:#b83b0a}
+.party-coverage-cards .assignment-card.purple{--accent:#6420a5}
+.party-coverage-cards .assignment-card.pink{--accent:#a9004b}
+.party-coverage-cards .assignment-head{color:#fff;background:var(--accent)}
+.party-coverage-cards .assignment-head b,.party-coverage-cards .assignment-head small{color:#fff;opacity:1}
+.party-coverage-cards .assignment-visual{background:linear-gradient(145deg,#d8f0f2,#8ac9c8)}
+.party-coverage-cards .assignment-name{background:#fff;color:#092532;font-weight:900}
+@media(max-width:780px){.assignment-cards.party-coverage-cards{grid-template-columns:repeat(5,minmax(0,1fr));overflow:visible}}
+
+
+/* Keep rotation flow compact: no forced panel height or stretched grid row. */
+.flow-panel.compact-flow-panel{min-height:0!important;height:auto!important;align-self:start;flex:none}
+.board-stack .flow-panel.compact-flow-panel{min-height:0!important;height:auto!important}
+.compact-flow-panel .rotation-wheel{height:82px;min-height:82px;max-height:82px;overflow:hidden}
+.compact-flow-panel .flow-caption{line-height:1.1}
+
+/* Correct mobile-first section order: current, next, compact flow, lunch, full-width schedule. */
+.board-stack{display:flex;flex-direction:column;gap:8px;margin:8px 0}
+.board-stack>.dash-panel,.break-room-panel,.full-schedule-panel{min-width:0;width:100%;box-sizing:border-box}
+.board-stack .assignment-cards{grid-template-columns:repeat(5,minmax(0,1fr));overflow:visible}
+.board-stack .next-cards{grid-template-columns:repeat(5,minmax(0,1fr));overflow:visible}
+.compact-flow-panel{padding:7px!important}
+.compact-flow-panel .rotation-wheel{height:100px;min-height:100px;max-width:100%;margin:0 auto}
+.compact-flow-panel .wheel-node{min-height:25px;padding:2px 3px;border-radius:5px}
+.compact-flow-panel .wheel-node span{width:13px;height:13px;font-size:8px}
+.compact-flow-panel .wheel-node b{font-size:7px;line-height:1.05}
+.compact-flow-panel .wheel-arrow{font-size:12px}
+.compact-flow-panel .flow-caption{font-size:9px;margin-top:1px}
+.break-room-panel{margin:7px 0;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.break-room-panel .staff-tags{display:flex;flex-wrap:wrap;gap:4px}
+.full-schedule-panel{margin:8px 0}
+.full-schedule-panel .schedule-table{width:100%;max-width:100%;overflow-x:auto}
+@media(max-width:620px){
+ .board-stack{gap:6px;margin:6px 0}
+ .board-stack .dash-panel{padding:5px;border-radius:9px}
+ .board-stack .assignment-cards,.board-stack .next-cards{grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;overflow:visible}
+ .board-stack .assignment-card{min-width:0;border-radius:4px}
+ .board-stack .assignment-head{min-height:27px;padding:2px 1px;gap:1px}
+ .board-stack .assignment-head>span{width:12px;height:12px;flex-basis:12px;font-size:7px}
+ .board-stack .assignment-head b{font-size:clamp(5px,1.5vw,8px);line-height:1}
+ .board-stack .assignment-head small{font-size:clamp(4px,1.25vw,7px);line-height:1;margin-top:1px}
+ .board-stack .assignment-visual{height:22px;padding-top:0}
+ .board-stack .person-icon{transform:scale(.38);transform-origin:bottom center;height:18px}
+ .board-stack .assignment-name{font-size:clamp(6px,1.7vw,9px);padding:2px 0;min-height:14px}
+ .board-stack .next-cards .assignment-head{min-height:27px}
+ .board-stack .next-cards .assignment-visual{height:22px}
+ .board-stack .next-cards .assignment-name{font-size:clamp(6px,1.6vw,9px);padding:2px 0}
+ .compact-flow-panel .rotation-wheel{height:76px;min-height:76px;max-height:76px}
+ .compact-flow-panel .wheel-node{min-height:22px;padding:2px 1px}
+ .compact-flow-panel .wheel-node b{font-size:6px}
+ .compact-flow-panel .wheel-arrow{font-size:10px}
+ .compact-flow-panel .flow-caption{font-size:8px}
+ .full-schedule-panel{padding:6px;margin:6px 0}
+ .full-schedule-panel .schedule-table table{min-width:540px}
+}
+
+
+/* User-requested Whole Team refinements */
+.team-grid .shift-off{display:inline!important;color:#78949a!important;background:transparent!important;border:0!important;box-shadow:none!important;min-width:0;padding:0;border-radius:0;font-size:.68rem;font-weight:600;text-transform:lowercase}
+.team-grid{width:100%;min-width:0;table-layout:fixed}
+.team-grid th,.team-grid td{padding:6px 3px}
+.team-grid th:nth-child(2),.team-grid td:nth-child(2){padding-left:1px}
+.team-grid th:first-child,.team-grid td:first-child{width:22%;padding-left:7px;padding-right:1px}
+.team-grid th:last-child,.team-grid td:last-child{width:9%}
+@media(max-width:620px){
+ .team-grid{min-width:0;width:100%;table-layout:fixed}
+ .team-grid th,.team-grid td{padding:5px 1px;font-size:10px;letter-spacing:-.02em}
+ .team-grid th:nth-child(2),.team-grid td:nth-child(2){padding-left:0}
+ .team-grid th:first-child,.team-grid td:first-child{width:22%;padding-left:5px;padding-right:1px}
+ .team-grid th:last-child,.team-grid td:last-child{width:9%}
+ .team-grid .team-name-btn{font-size:10px;letter-spacing:-.03em;white-space:normal;overflow-wrap:anywhere}
+ .shift-badge{min-width:0;padding:4px 2px;font-size:10px}
+ .team-grid .shift-off{font-size:9px;padding:0}
+ .table-wrap{overflow-x:auto}
+ .schedule-week{gap:6px}
+ .schedule-week .week-status{margin-left:0}
+}
+
+
+/* On 11 AM and 1 PM, show both AM and PM source-sheet assignments in each schedule cell. */
+.rotation-source-name{white-space:normal;line-height:1.35;margin:2px 0}
+.rotation-source-name small{display:inline-block;font-size:.72em;font-weight:800;color:#17607b;margin-right:3px}
+
+/* Tight hourly rotation schedule: compact, readable 10-position layout */
+.full-schedule-panel .schedule-table{width:100%;max-width:100%;overflow-x:auto;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.full-schedule-panel .schedule-table table{width:874px;min-width:874px;max-width:none;table-layout:fixed;border-spacing:0;font-size:.68rem}
+.full-schedule-panel .schedule-table th,.full-schedule-panel .schedule-table td{box-sizing:border-box;width:82px;min-width:0;max-width:82px;padding:5px 4px;line-height:1.15;overflow-wrap:anywhere;word-break:normal;white-space:normal}
+.full-schedule-panel .schedule-table th:first-child,.full-schedule-panel .schedule-table td:first-child{width:54px;min-width:54px;max-width:54px}
+.full-schedule-panel .schedule-table th{font-size:.64rem;vertical-align:bottom}
+.full-schedule-panel .schedule-table td button{font-size:.68rem;white-space:normal}
+@media(max-width:620px){.full-schedule-panel .schedule-table table{width:874px;min-width:874px;font-size:.62rem}.full-schedule-panel .schedule-table th,.full-schedule-panel .schedule-table td{padding:4px 3px}.full-schedule-panel .schedule-table th{font-size:.58rem}}
+
+/* My Week: restore the visual, position-by-position shift cards */
+#weekTable{overflow:visible;border:0;background:transparent;margin-top:14px;display:grid;gap:14px}
+.week-day-card{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:14px;min-width:0}
+.week-day-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.week-day-head h3{font-size:1rem;margin:0;font-weight:850}
+.week-day-shift{display:inline-block;background:#292b63;color:#d8d9ff;border-radius:12px;padding:8px 12px;font-weight:850;font-size:.82rem}.week-day-shift.shift-am{background:#e94d15;color:#fff}.week-day-shift.shift-pm{background:#292b63;color:#d8d9ff}
+.week-assignment-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.week-assignment-card{border-radius:14px;overflow:hidden;min-width:0;color:#eaf5f8;background:#14794b}
+.week-assignment-card.missing{background:#475569;color:#f1f5f9}.week-assignment-card.missing .week-assignment-time,.week-assignment-card.missing .week-assignment-subtitle{color:#e2e8f0}.week-assignment-card.blue{background:#195caf}.week-assignment-card.green{background:#168451}.week-assignment-card.orange{background:#e94d15}.week-assignment-card.lunch{background:#d1d5db;color:#25313a}.week-assignment-card.lunch .week-assignment-time,.week-assignment-card.lunch .week-assignment-subtitle{color:#4b5560}
+.week-assignment-time{padding:12px 14px 2px;font-size:.83rem;font-weight:800;color:#d5e9f3}
+.week-assignment-title{padding:0 14px;font-size:1rem;font-weight:950;line-height:1.2}
+.week-assignment-subtitle{padding:6px 14px 14px;font-size:.88rem;color:#d8e9ef}
+.week-no-positions{color:var(--muted);font-size:.9rem;padding:8px 2px}
+@media(max-width:520px){#weekTable{gap:12px}.week-day-card{padding:12px;border-radius:18px}.week-assignment-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.week-assignment-time{font-size:.75rem;padding:10px 10px 2px}.week-assignment-title{font-size:.88rem;padding:0 10px}.week-assignment-subtitle{font-size:.78rem;padding:6px 10px 12px}.week-day-head h3{font-size:.95rem}.week-day-shift{font-size:.73rem;padding:7px 9px}}
+
+/* Final user-requested styling refinements: match AM badge, tighten roster and rotation table. */
+.week-day-shift.shift-am{background:#574318;color:#ffe49a}
+.team-grid th:first-child,.team-grid td:first-child{width:19%;padding-left:5px;padding-right:1px}
+.team-grid th:nth-child(2),.team-grid td:nth-child(2){padding-left:0}
+.schedule-table table{min-width:0!important;width:100%;table-layout:fixed;font-size:.68rem}
+.schedule-table th,.schedule-table td{padding:3px 4px;overflow-wrap:anywhere;word-break:normal}
+@media(max-width:620px){
+ .team-grid th:first-child,.team-grid td:first-child{width:19%;padding-left:4px;padding-right:0}
+ .team-grid th:nth-child(2),.team-grid td:nth-child(2){padding-left:0}
+ .schedule-table table{min-width:0!important;width:100%;font-size:.56rem}
+ .schedule-table th,.schedule-table td{padding:2px 3px}
+}
+
+
+
+.team-month-week-filter{display:flex;align-items:center;gap:9px;margin:8px 0 10px;color:var(--muted);font-size:.78rem;font-weight:800}
+.team-month-week-filter select{max-width:100%;min-width:190px;background:#102b30;border:1px solid #284a54;color:var(--text);border-radius:8px;padding:8px 10px;font:inherit;font-weight:750}
+@media(max-width:620px){.team-month-week-filter{gap:6px;font-size:.68rem}.team-month-week-filter select{min-width:0;flex:1;padding:7px 8px}}
+
+/* Whole Team week/month view switch and compact month grid */
+.team-view-toggle{display:flex;gap:6px;margin:10px 0 8px}
+.team-view-btn{border:1px solid #284a54;background:#102b30;color:#9bb8be;border-radius:8px;padding:8px 16px;font-size:.75rem;font-weight:900;letter-spacing:.06em}
+.team-view-btn.active{background:var(--cyan);border-color:var(--cyan);color:#062b32}
+#teamTable.month-view{overflow-x:auto;-webkit-overflow-scrolling:touch}
+#teamTable.month-view .team-grid{width:max-content;min-width:100%;table-layout:auto}
+#teamTable.month-view .team-grid th,#teamTable.month-view .team-grid td{min-width:42px;padding:5px 4px;text-align:center}
+#teamTable.month-view .team-grid th:first-child,#teamTable.month-view .team-grid td:first-child{position:sticky;left:0;z-index:2;min-width:92px;width:92px;text-align:left;background:#102b30}
+#teamTable.month-view .team-grid th:first-child{z-index:3}
+#teamTable.month-view .team-grid th:last-child,#teamTable.month-view .team-grid td:last-child{position:sticky;right:0;z-index:2;background:#102b30;min-width:48px}
+.month-shift{border:0;border-radius:6px;padding:5px 4px;min-width:32px;font-size:.68rem;font-weight:900;cursor:pointer}
+.month-shift.am{background:#574318;color:#ffe49a}.month-shift.pm{background:#292b63;color:#d8d9ff}
+.month-shift.off{background:transparent;color:#78949a;font-size:.64rem;font-weight:650}
+.month-shift.tbd{background:#263b42;color:#a8bec4;font-size:.62rem}
+@media(max-width:620px){.team-view-btn{padding:7px 13px;font-size:.68rem}#teamTable.month-view .team-grid{font-size:9px}#teamTable.month-view .team-grid th,#teamTable.month-view .team-grid td{min-width:36px;padding:4px 2px}#teamTable.month-view .team-grid th:first-child,#teamTable.month-view .team-grid td:first-child{min-width:78px;width:78px;padding-left:5px}#teamTable.month-view .month-shift{min-width:27px;padding:4px 2px;font-size:9px}}
+
+</style>
+</head>
+<body>
+<header>
+  <div class="kicker">CABO REAL SURF CLUB</div>
+  <div class="brand">Staff <span>Rotation</span></div>
+  <div class="schedule-week" aria-live="polite"><span class="week-label">Schedule week</span><span id="scheduleWeekLabel">Schedule week not set — update the Schedule Info tab</span><span class="week-status" id="scheduleWeekStatus">Date needed</span></div>
+  <nav class="tabs" aria-label="Main navigation">
+    <button class="tab active" data-tab="live">Live Board</button><button class="tab" data-tab="week">My Week</button><button class="tab" data-tab="team">Whole Team</button>
+  </nav>
+  <div class="connection"><span id="connectionDot" class="dot"></span><span id="connectionText">Connecting to live roster…</span></div>
+</header>
+<main>
+<section id="liveView">
+  <div class="section-title">HIGHLIGHT A PERSON</div>
+  <div id="employeePills" class="pills" aria-label="Employee selection"></div>
+  <div class="day-buttons" id="dayButtons" aria-label="Select day"></div>
+  <div class="hour-buttons" id="hourButtons" aria-label="Select hour"></div>
+  <div class="toolbar hidden"><label for="daySelect">Day</label><select id="daySelect"><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option></select><label for="hourSelect">Rotation</label><select id="hourSelect"></select><button id="nowButton" class="pill">Current time</button></div>
+  <div id="partyNotice" class="notice hidden"></div>
+  <div class="map-card reference-map">
+    <div class="map-heading"><h2>Surf Pool · Staff Positions</h2><span id="poolTime" class="map-note"></span></div>
+    <div class="aerial-stage">
+      <img id="poolAerialImage" class="aerial-image" src="pool-aerial.png" alt="Aerial site layout showing the surf pool and surrounding staff work areas">
+    </div>
+  </div>
+  <div class="board-stack">
+    <section class="dash-panel current-panel">
+      <div class="panel-heading"><h2>CURRENT HOUR</h2><strong id="currentHourLabel">—</strong></div>
+      <div class="assignment-cards">
+        <article class="assignment-card blue"><div class="assignment-head"><span>1</span><div><b>SURF COACH</b><small>Zone 1</small></div></div><div class="assignment-visual"><span class="person-icon" aria-hidden="true"></span></div><div id="cardPusher" class="assignment-name">—</div></article>
+        <article class="assignment-card blue"><div class="assignment-head"><span>2</span><div><b>SURF COACH</b><small>Zone 5</small></div></div><div class="assignment-visual"><span class="person-icon" aria-hidden="true"></span></div><div id="cardCatcher" class="assignment-name">—</div></article>
+        <article class="assignment-card orange"><div class="assignment-head"><span>3</span><div><b>CONTROL TOWER</b><small>Make the waves</small></div></div><div class="assignment-visual"><span class="person-icon" aria-hidden="true"></span></div><div id="cardTower" class="assignment-name">—</div></article>
+        <article class="assignment-card green"><div class="assignment-head"><span>4</span><div><b>BOARD ROOM A</b><small>Check in / out</small></div></div><div class="assignment-visual"><span class="person-icon" aria-hidden="true"></span></div><div id="cardBoardA" class="assignment-name">—</div></article>
+        <article class="assignment-card green"><div class="assignment-head"><span>5</span><div><b>BOARD ROOM B</b><small>Check in / out</small></div></div><div class="assignment-visual"><span class="person-icon" aria-hidden="true"></span></div><div id="cardBoardB" class="assignment-name">—</div></article>
+      </div>
+    </section>
+    <section class="dash-panel next-panel">
+      <div class="panel-heading"><h2>NEXT HOUR</h2><strong id="nextHourLabel">—</strong></div>
+      <div id="nextHourCards" class="next-cards"></div>
+    </section>
+    <section class="dash-panel flow-panel compact-flow-panel">
+      <div class="panel-heading"><h2>ROTATION FLOW</h2><span class="map-note">Hourly rotation</span></div>
+      <div class="rotation-wheel">
+        <div class="wheel-node n1"><span>1</span><b>SURF COACH</b><strong id="flowPusher" class="hidden">—</strong></div>
+        <div class="wheel-node n2"><span>2</span><b>SURF COACH</b><strong id="flowCatcher" class="hidden">—</strong></div>
+        <div class="wheel-node n3"><span>3</span><b>CONTROL TOWER</b><strong id="flowTower" class="hidden">—</strong></div>
+        <div class="wheel-node n4"><span>4</span><b>BOARD ROOM A</b><strong id="flowBoardA" class="hidden">—</strong></div>
+        <div class="wheel-node n5"><span>5</span><b>BOARD ROOM B</b><strong id="flowBoardB" class="hidden">—</strong></div>
+        <div class="wheel-arrow a12">↘</div><div class="wheel-arrow a23">↙</div><div class="wheel-arrow a34">←</div><div class="wheel-arrow a45">↖</div><div class="wheel-arrow a51">↗</div>
+      </div>
+      <div class="flow-caption">Everyone rotates each hour in this direction.</div>
+    </section>
+  </div>
+  <section id="breakRoomPanel" class="dash-panel break-room-panel hidden">
+    <div class="panel-heading"><h2>BREAK ROOM</h2><strong id="breakRoomLabel">—</strong></div>
+    <div id="breakRoomVisible" class="staff-tags"></div>
+  </section>
+  <section class="dash-panel schedule-panel full-schedule-panel">
+    <div class="panel-heading"><h2>HOURLY ROTATION SCHEDULE</h2><span class="map-note">Select a row to view it</span></div>
+    <div id="hourlySchedule" class="schedule-table"></div>
+  </section>
+  <div class="section-title hidden">Position assignments · selected hour</div>
+
+  <div class="zone-grid hidden">
+    <div class="zone"><h4>SURF COACH · ZONE 1</h4><div id="pusher" class="staff-tags"></div></div>
+    <div class="zone"><h4>SURF COACH · ZONE 5</h4><div id="catcher" class="staff-tags"></div></div>
+    <div class="zone"><h4>SURF COACH · ZONE 2</h4><div id="boardA" class="staff-tags"></div></div>
+    <div class="zone"><h4>SURF COACH · ZONE 3</h4><div id="boardB" class="staff-tags"></div></div>
+  </div>
+  <div class="positions-grid hidden">
+    <div class="location-card"><h3>SURF COACH · ZONE 4</h3><div id="tower" class="staff-tags"></div></div>
+    <div class="location-card"><h3>Break Room / Lunch</h3><div id="breakRoom" class="staff-tags"></div></div>
+    <div class="location-card"><h3>Other / party coverage</h3><div id="extra" class="staff-tags"></div></div>
+  </div>
+  <div class="status-card hidden"><div class="section-title">Operating status · based on actual Cabo time</div><h2 id="operatingStatus">Loading roster…</h2><div id="statusDetail" class="muted">Operating hours are 7:00 AM–7:00 PM Cabo time.</div><div class="clock-row"><span id="liveClock" class="clock">--:--</span><span id="dateLabel" class="muted">Cabo time</span></div></div>
+  <section class="daily-crew-panel">
+    <div class="panel-heading"><h2>DAILY CREW OVERVIEW</h2><strong id="dailyCrewDay">—</strong></div>
+    <div class="daily-crew-grid">
+      <article class="crew-summary am"><h3>AM CREW</h3><div id="dailyAmCrew" class="crew-names">Loading…</div></article>
+      <article class="crew-summary pm"><h3>PM CREW</h3><div id="dailyPmCrew" class="crew-names">Loading…</div></article>
+      <article class="crew-summary off"><h3>DAY OFF</h3><div id="dailyDayOff" class="crew-names">Loading…</div></article>
+    </div>
+  </section>
+</section>
+<section id="weekView" class="hidden">
+  <div class="section-title">My week · individual schedule</div>
+  <div class="toolbar"><label for="weekEmployee">Employee</label><select id="weekEmployee"></select><label for="weekDay">Day</label><select id="weekDay"><option value="">All days</option><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option></select></div>
+  <div id="weekSummary" class="card muted">Choose an employee to see their shifts.</div><div id="weekTable" class="table-wrap"></div>
+</section>
+<section id="teamView" class="hidden">
+  <div class="section-title">Whole team · weekly coverage</div>
+  <div class="team-highlight-label">HIGHLIGHT A PERSON</div>
+  <div id="teamEmployeePills" class="pills" aria-label="Highlight an employee"></div>
+  <div class="team-caption"><strong>Whole team</strong> · switch between the current week and the monthly schedule. In MONTH, use the week dropdown to show one week at a time. Tap a name to highlight their row.</div>
+  <div class="team-view-toggle" role="group" aria-label="Schedule view"><button type="button" class="team-view-btn active" data-team-view="week">WEEK</button><button type="button" class="team-view-btn" data-team-view="month">MONTH</button></div>
+  <div id="teamMonthWeekFilter" class="team-month-week-filter hidden"><label for="teamMonthSelect">Month</label><select id="teamMonthSelect" aria-label="Select a month in the monthly schedule"></select><label for="teamWeekSelect">Show week</label><select id="teamWeekSelect" aria-label="Select a week in the monthly schedule"></select></div>
+  <div id="teamSummary" class="muted"></div><div id="teamTable" class="table-wrap"></div><div class="team-caption" id="teamHoursNote">AM 7:00 AM–3:00 PM · PM 11:00 AM–7:00 PM · Each shift is 8 hours, including a 1-hour paid lunch.</div>
+</section>
+</main>
+<footer><span>Staff Rotation · Cabo Real Surf Club</span><span id="updatedLabel">Waiting for first data refresh</span></footer>
+<script>
+const DATABASE_URL="https://cabo-real-surf-club-default-rtdb.firebaseio.com";
+const DATA_PATH="/surfOps.json",REFRESH_MS=30000,CABO_TZ="America/Mazatlan";
+const DAYS=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+const STAFF_NAMES=["Kody","Ana","Bernardo","Diana","Felix","Fernando","Green","Linden","Lucho","Makeni","Marley","Pollo","Pomo","Tlaca","Toni","Wikin"];
+let rootData=null,sheetMap={},employees=[...STAFF_NAMES],selectedEmployee="",allRows=[],echoData=null;
+const $=id=>document.getElementById(id),normalize=s=>String(s??"").trim().toLowerCase().replace(/\s+/g," ");
+function asArray(v){if(Array.isArray(v))return v;if(v&&typeof v==="object")return Object.keys(v).sort((a,b)=>Number(a)-Number(b)).map(k=>v[k]);return []}
+function makeEchoSheets(data){
+ const out={}, put=(name,rows)=>out[name]={values:rows};
+ const monthly=data["Monthly Employee Schedule"]||{}, dates=asArray(monthly.dates), staff=asArray(monthly.employees), dayMap=monthly.days||{};
+ put("Monthly Employee Schedule",staff.map(e=>{const row={Employee:e.name,Type:e.type};dates.forEach(d=>row[d]=dayMap[d]?.assignments?.[e.name]||"TBD");return row}));
+ const week=data["Weekly Schedule"]||{}, weekDays=asArray(week.days), weekly=[];
+ weekDays.forEach(d=>{const assignments=d.assignments||{};Object.entries(assignments).forEach(([name,shift])=>{if(shift==="AM"||shift==="PM")weekly.push({Employee:name,Day:d.day,Shift:shift,Start:shift==="AM"?"7:00 AM":"11:00 AM",End:shift==="AM"?"3:00 PM":"7:00 PM"});else weekly.push({Employee:name,Day:d.day,Shift:shift,Start:"",End:""})})});
+ put("Weekly Schedule",weekly);
+ const weekday=date=>{const d=new Date(date+"T12:00:00Z");return ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][d.getUTCDay()]};
+ function rotationRows(key){const block=data[key]||{};return asArray(block.rows).map(r=>{const row={Day:weekday(block.date),Date:block.date,Hour:r.hour,Type:r.type};asArray(r.assignments).forEach(a=>{row[a.position]=a.employee;
+   if(a.position==="Surf Coach Zone 1")row["Pool Pusher (Zone 1)"]=a.employee;
+   if(a.position==="Surf Coach Zone 5")row["Pool Catcher (Zone 5)"]=a.employee;
+  });return row})}
+ put("AM Hourly Rotation",rotationRows("AM Hourly Rotation"));put("PM Hourly Rotation",rotationRows("PM Hourly Rotation"));
+ const party=data["Pool Party Coverage"]||{};
+ put("Pool Party Coverage",asArray(party.rows).map(r=>{const row={Day:weekday(party.date),Date:party.date,Hour:r.hour};const groups={pool:[],tower:[],board:[]};asArray(r.assignments).forEach(a=>{row[a.position]=a.employee;if(/^Surf Coach Zone/.test(a.position))groups.pool.push(a.employee);else if(/^Control Tower/.test(a.position))groups.tower.push(a.employee);else if(/^Board Room/.test(a.position))groups.board.push(a.employee)});row["Pool (5)"]=groups.pool.join(", ");row["Tower (2)"]=groups.tower.join(", ");row["Board Room (3)"]=groups.board.join(", ");return row}));
+ const monday=week.weekStarting||data.selectedDate||"2026-10-26",end=new Date(monday+"T12:00:00Z");end.setUTCDate(end.getUTCDate()+6);
+ const endKey=end.toISOString().slice(0,10);
+ put("Schedule Info",[{Setting:"Week Start Date",Value:monday},{Setting:"Week End Date",Value:endKey},{Setting:"Schedule Status",Value:"PUBLISHED WEEK"}]);
+ return out;
+}
+function parseSheet(name){const s=sheetMap[name];if(!s)return [];const headers=asArray(s.headers).map(v=>String(v??"").trim());let rows=asArray(s.values);if(!rows.length)rows=asArray(s.rows);return rows.map(r=>{if(r&&!Array.isArray(r)&&typeof r==="object")return r;const o={};headers.forEach((h,i)=>o[h]=asArray(r)[i]??"");return o}).filter(o=>Object.values(o).some(v=>String(v??"").trim()!==""))}
+function scheduleInfoValue(key){const row=parseSheet("Schedule Info").find(r=>normalize(field(r,["Setting","Field","Item"]))===normalize(key));return row?field(row,["Value"]):""}
+function parseScheduleDate(value){
+ if(value instanceof Date&&!Number.isNaN(value.getTime()))return new Date(value.getFullYear(),value.getMonth(),value.getDate());
+ if(typeof value==="number"&&Number.isFinite(value)){
+  if(value>20000&&value<100000){const d=new Date(Date.UTC(1899,11,30)+value*86400000);return new Date(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate())}
+  return null;
+ }
+ const s=String(value??"").trim();if(!s)return null;
+ let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:$|T|\s)/);
+ if(m)return validScheduleDate(Number(m[1]),Number(m[2]),Number(m[3]));
+ m=s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
+ if(m)return validScheduleDate(Number(m[3]),Number(m[1]),Number(m[2]));
+ const d=new Date(s);return Number.isNaN(d.getTime())?null:new Date(d.getFullYear(),d.getMonth(),d.getDate())
+}
+function validScheduleDate(y,m,d){const date=new Date(y,m-1,d);return date.getFullYear()===y&&date.getMonth()===m-1&&date.getDate()===d?date:null}
+function renderScheduleWeek(){let start=parseScheduleDate(scheduleInfoValue("Week Start Date")),end=parseScheduleDate(scheduleInfoValue("Week End Date"));let status=scheduleInfoValue("Schedule Status")||"SCHEDULE WEEK";const label=$("scheduleWeekLabel"),statusEl=$("scheduleWeekStatus");if(!label||!statusEl)return;if(!(start&&end&&end>=start)){const parts=Object.fromEntries(new Intl.DateTimeFormat("en-US",{timeZone:CABO_TZ,year:"numeric",month:"numeric",day:"numeric"}).formatToParts(new Date()).map(p=>[p.type,p.value]));const today=new Date(Date.UTC(+parts.year,+parts.month-1,+parts.day));const day=today.getUTCDay();start=new Date(today);start.setUTCDate(today.getUTCDate()-(day===0?6:day-1));end=new Date(start);end.setUTCDate(start.getUTCDate()+6);status="CURRENT WEEK · AUTO";}const fmt=(d,{month="long",day="numeric",year="numeric"}={})=>new Intl.DateTimeFormat("en-US",{month,day,year,timeZone:"UTC"}).format(new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())));label.textContent=start.getFullYear()===end.getFullYear()?(start.getMonth()===end.getMonth()?`${fmt(start,{month:"long",day:"numeric",year:"numeric"}).replace(", "+start.getFullYear(),"")} – ${fmt(end,{month:"long",day:"numeric",year:"numeric"}).replace(", "+end.getFullYear(),"")}, ${end.getFullYear()}`:`${fmt(start)} – ${fmt(end)}`):`${fmt(start)} – ${fmt(end)}`;statusEl.textContent=status}
+function field(o,alts){const keys=Object.keys(o||{});for(const a of alts){const k=keys.find(x=>normalize(x)===normalize(a));if(k&&String(o[k]??"").trim())return o[k]}for(const a of alts){const k=keys.find(x=>normalize(x).includes(normalize(a)));if(k&&String(o[k]??"").trim())return o[k]}return ""}
+function canonicalStaffName(value){const name=String(value??"").trim();const key=normalize(name);const canonical=key==="bost"?"Pollo":key==="chino"?"Bernardo":name;return STAFF_NAMES.find(n=>normalize(n)===normalize(canonical))||""}
+function splitNames(v){return String(v??"").split(/[,;\n&]+/).map(x=>canonicalStaffName(x)).filter(Boolean)}
+function rowToAssignment(r,source){
+ const day=String(field(r,["Day","Weekday"])||"").trim(),time=String(field(r,["Hour","Time","Time Slot","Rotation"])||"").trim();
+ const pick=alts=>String(field(r,alts)||"").trim();
+ const positions={
+  "Pool Pusher (Zone 1)":pick(["Pool Pusher (Zone 1)","Pool Pusher","Pusher","Surf Coach Zone 1","Zone 1"]),
+  "Pool Catcher (Zone 5)":pick(["Pool Catcher (Zone 5)","Pool Catcher","Catcher","Surf Coach Zone 5","Zone 5"]),
+  "Control Tower":pick(["Control Tower","Control Tower A","Tower A","Tower"]),
+  "Board Room A":pick(["Board Room A","Board Room A Staff"]),
+  "Board Room B":pick(["Board Room B","Board Room B Staff"]),
+  "Surf Coach Zone 1":pick(["Surf Coach Zone 1","Surf Coach · Zone 1","Pool Pusher (Zone 1)","Pool Pusher","Pusher","Zone 1"]),
+  "Surf Coach Zone 2":pick(["Surf Coach Zone 2","Surf Coach · Zone 2","Zone 2"]),
+  "Surf Coach Zone 3":pick(["Surf Coach Zone 3","Surf Coach · Zone 3","Zone 3"]),
+  "Surf Coach Zone 4":pick(["Surf Coach Zone 4","Surf Coach · Zone 4","Zone 4"]),
+  "Surf Coach Zone 5":pick(["Surf Coach Zone 5","Surf Coach · Zone 5","Pool Catcher (Zone 5)","Pool Catcher","Catcher","Zone 5"]),
+  "Control Tower A":pick(["Control Tower A","Tower A","Control Tower"]),
+  "Control Tower B":pick(["Control Tower B","Tower B"]),
+  "Board Room C":pick(["Board Room C","Board Room C Staff"])
+ };
+ return {day,time,positions,source,raw:r};
+}
+function isEmployeeOff(day,name){
+ const key=normalize(name);
+ if(!key)return false;
+ const rows=weeklyScheduleRows().filter(r=>normalize(r.day)===normalize(day)&&normalize(r.employee)===key);
+ return rows.some(r=>/^(off|day off|days off)$/.test(normalize(r.shift)));
+}
+function scheduledNames(day,value){
+ return splitNames(value).filter(name=>!isEmployeeOff(day,name));
+}
+function getAllAssignments(){
+ const raw=Object.keys(sheetMap)
+  .filter(n=>["am hourly rotation","pm hourly rotation"].includes(normalize(n)))
+  .flatMap(n=>parseSheet(n).map(r=>rowToAssignment(r,normalize(n).startsWith("am")?"AM":"PM")))
+  .filter(r=>r.day&&r.time);
+ // Enforce the Weekly Schedule day-off status before any liveboard view uses assignments.
+ raw.forEach(r=>Object.keys(r.positions||{}).forEach(k=>{r.positions[k]=scheduledNames(r.day,r.positions[k]).join(", ")}));
+ // AM and PM source sheets can both contain a row for an overlap hour.
+ // Keep one selectable row per day/hour and retain all source rows for party coverage.
+ const grouped=new Map();
+ raw.forEach(r=>{
+  const key=normalize(r.day)+"|"+hourStart(r.time);
+  if(!grouped.has(key))grouped.set(key,{...r,sourceRows:[r]});
+  else {
+   const g=grouped.get(key);g.sourceRows.push(r);
+   Object.keys(g.positions).forEach(k=>{
+    const vals=[...splitNames(g.positions[k]),...splitNames(r.positions[k])];
+    g.positions[k]=[...new Set(vals)].join(", ");
+   });
+   // Prefer a readable canonical time label from the first source row.
+  }
+ });
+ const result=[...grouped.values()].sort((a,b)=>DAYS.indexOf(a.day)-DAYS.indexOf(b.day)||hourStart(a.time)-hourStart(b.time));
+ // Reconcile legacy hourly assignments against the Weekly Schedule without deleting
+ // whole positions. Keep valid assigned names, then fill vacancies from staff actually
+ // scheduled for that day and shift. This avoids the previous all-blank result when a
+ // source rotation named somebody who is off.
+ result.forEach(r=>{
+  const h=hourStart(r.time); if([11,13].includes(h)) return; // party-hour coverage is handled from its dedicated sheet
+  const crew=scheduledCrewForHour(r.day,h);
+  if(!crew.length)return;
+  const keys=["Pool Pusher (Zone 1)","Pool Catcher (Zone 5)","Control Tower","Board Room A","Board Room B"];
+  const used=new Set();
+  keys.forEach(k=>{
+   const name=splitNames(r.positions[k]).find(n=>crew.some(c=>normalize(c)===normalize(n))&&!used.has(normalize(n)));
+   if(name){r.positions[k]=name;used.add(normalize(name));}else r.positions[k]="";
+  });
+  keys.forEach(k=>{
+   if(r.positions[k])return;
+   const next=crew.find(n=>!used.has(normalize(n)));
+   if(next){r.positions[k]=next;used.add(normalize(next));}
+  });
+  // Keep the additional zone keys aligned with the five visible core positions.
+  r.positions["Surf Coach Zone 1"]=r.positions["Pool Pusher (Zone 1)"];
+  r.positions["Surf Coach Zone 5"]=r.positions["Pool Catcher (Zone 5)"];
+ });
+ return result;
+}
+function scheduledCrewForHour(day,h){
+ const rows=weeklyScheduleRows().filter(r=>normalize(r.day)===normalize(day)&&! /^(off|day off|days off)$/i.test(r.shift));
+ let wanted=[];
+ if(h<11) wanted=rows.filter(r=>/^(am|am crew|morning)$/i.test(r.shift));
+ else if(h===12) wanted=rows.filter(r=>/^(pm|pm crew|afternoon)$/i.test(r.shift));
+ else if(h===14) wanted=rows.filter(r=>/^(am|am crew|morning)$/i.test(r.shift));
+ else if(h>=15) wanted=rows.filter(r=>/^(pm|pm crew|afternoon)$/i.test(r.shift));
+ else wanted=rows;
+ const names=[];wanted.forEach(r=>{if(r.employee&&!names.some(n=>normalize(n)===normalize(r.employee)))names.push(r.employee)});
+ return names;
+}
+function parseEmployees(){
+ // The published roster is fixed: keep every name pill, dropdown, and crew filter
+ // aligned to the approved 16-person list regardless of stale/extra sheet rows.
+ return [...STAFF_NAMES];
+}function parts(){return Object.fromEntries(new Intl.DateTimeFormat("en-US",{timeZone:CABO_TZ,weekday:"long",hour:"2-digit",minute:"2-digit",hour12:false,month:"short",day:"numeric"}).formatToParts(new Date()).map(p=>[p.type,p.value]))}
+function currentDay(){return parts().weekday}function currentHour(){return Number(parts().hour)}
+function timeText(){return new Intl.DateTimeFormat("en-US",{timeZone:CABO_TZ,hour:"2-digit",minute:"2-digit",hour12:true}).format(new Date())}
+function hourStart(s){const m=String(s||"").match(/(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?/i);if(!m)return -1;let h=+m[1];const ap=(m[3]||"").toUpperCase();if(ap==="PM"&&h<12)h+=12;if(ap==="AM"&&h===12)h=0;if(!ap&&h>=1&&h<=6)h+=12;return h}
+function shortHour(s){const h=hourStart(s);if(h<0)return String(s||"");const hour=h%12||12;return hour+(h<12?"a":"p")}
+function findRow(day,time){const candidates=allRows.filter(r=>normalize(r.day)===normalize(day));return candidates.find(r=>hourStart(r.time)===hourStart(time))||null}
+function connected(ok,msg){$("connectionDot").className="dot "+(ok?"ok":"bad");$("connectionText").textContent=msg}
+function renderPills(){const host=$("employeePills");host.innerHTML="";employees.forEach(name=>{const b=document.createElement("button");b.className="pill"+(selectedEmployee===name?" selected":"");b.textContent=name;b.setAttribute("aria-pressed",String(selectedEmployee===name));b.onclick=()=>{selectedEmployee=selectedEmployee===name?"":name;renderAll()};host.appendChild(b)})}
+function staffTag(name){const b=document.createElement("button");b.className="staff-tag"+(selectedEmployee===name?" highlight":"");b.textContent=name;b.onclick=()=>{selectedEmployee=selectedEmployee===name?"":name;renderAll()};return b}
+function fill(id,values){const el=$(id);el.innerHTML="";const names=[...new Set(values.flatMap(splitNames))];if(!names.length){el.innerHTML='<span class="empty">No assignment recorded</span>';return}names.forEach(n=>el.appendChild(staffTag(n)))}
+function setMap(id,names){const el=$(id),vals=[...new Set(names.flatMap(splitNames))];el.textContent=vals.length?vals.join(" · "):"—";el.classList.toggle("highlight",!!selectedEmployee&&vals.includes(selectedEmployee));const flowIds={mapPusher:"flowPusher",mapCatcher:"flowCatcher",mapTower:"flowTower",mapBoardA:"flowBoardA",mapBoardB:"flowBoardB"};if(flowIds[id])$(flowIds[id]).textContent=vals.length?vals.join(" · "):"—";if(flowIds[id])$(flowIds[id]).parentElement.classList.toggle("active",!!selectedEmployee&&vals.includes(selectedEmployee))}
+function renderBoard(){const day=$("daySelect").value,time=$("hourSelect").value,row=findRow(day,time);const selectedStart=hourStart(time);const poolImage=$("poolAerialImage");if(poolImage){const partyImage=[11,13].includes(selectedStart);poolImage.src=partyImage?"pool-party-aerial.png":"pool-aerial.png";poolImage.alt=partyImage?"Five surf coaches positioned in pool Zones 1, 2, 3, 4 and 5 for pool-party coverage":"Standard surf pool staff positions, including Surf Coach Zone 1 and Surf Coach Zone 5";}$("poolTime").textContent=`${day} · ${time||"No rotation selected"}`;const ids=["pusher","catcher","boardA","boardB","tower","breakRoom","extra"];if(!row){ids.forEach(id=>fill(id,[]));$("partyNotice").classList.add("hidden")}else{const p=row.positions;fill("pusher",[p["Surf Coach Zone 1"]||p["Pool Pusher (Zone 1)"]]);fill("catcher",[p["Surf Coach Zone 5"]||p["Pool Catcher (Zone 5)"]]);fill("tower",[p["Surf Coach Zone 4"]]);fill("boardA",[p["Surf Coach Zone 2"]]);fill("boardB",[p["Surf Coach Zone 3"]]);const extra=[],breaks=[];Object.keys(sheetMap).filter(n=>/pool party|daily coverage|daily staffing|positions|glide setup/i.test(n)).forEach(n=>parseSheet(n).forEach(r=>{const d=field(r,["Day","Weekday"]),t=field(r,["Hour","Time","Time Slot","Rotation"]);if(normalize(d)===normalize(day)&&(!t||hourStart(t)===hourStart(time))){Object.entries(r).forEach(([k,v])=>{if(/break|lunch/i.test(k))breaks.push(...splitNames(v));else if(!/day|hour|time|rotation|session|date/i.test(k))extra.push(...splitNames(v))})}}));const core=new Set(Object.values(p).flatMap(splitNames));fill("extra",extra.filter(n=>!core.has(n)));const breakHour=hourStart(time);if(breakHour===12)breaks.push(...[...($("dailyAmCrew")?.querySelectorAll(".crew-name")||[])].map(el=>el.textContent));if(breakHour===14)breaks.push(...[...($("dailyPmCrew")?.querySelectorAll(".crew-name")||[])].map(el=>el.textContent));fill("breakRoom",breaks);const visibleBreak=$("breakRoomVisible");if(visibleBreak)visibleBreak.innerHTML=$("breakRoom").innerHTML;const breakPanel=$("breakRoomPanel");if(breakPanel){const showBreak=[12,14].includes(breakHour);breakPanel.classList.toggle("hidden",!showBreak);$("breakRoomLabel").textContent=breakHour===12?"AM Crew Lunch":breakHour===14?"PM Crew Lunch":"";}const hasExtra=extra.some(n=>!core.has(n));$("partyNotice").classList.toggle("hidden",!hasExtra);$("partyNotice").textContent=hasExtra?"Additional pool-party or coverage assignments are listed in Other / party coverage.":""}
+const p=row?.positions||{};
+const h=currentHour(),open=h>=7&&h<19;$("operatingStatus").textContent=open?"Club operating hours":"Club currently closed";$("statusDetail").textContent=`Current status uses actual Cabo local time (${timeText()}), not the selected roster hour. Selected board: ${day} ${time||"—"}.`;
+}
+function populateTimes(preserve=true){const sel=$("hourSelect"),old=preserve?sel.value:"";sel.innerHTML="";const times=[...new Set(allRows.filter(r=>normalize(r.day)===normalize($("daySelect").value)).map(r=>r.time))].sort((a,b)=>hourStart(a)-hourStart(b));times.forEach(t=>{const o=document.createElement("option");o.value=t;o.textContent=t;sel.appendChild(o)});if(old&&times.includes(old))sel.value=old;else{const now=currentHour(),match=times.find(t=>hourStart(t)===now);if(match)sel.value=match;else if(times.length)sel.selectedIndex=0}}
+function populateEmployees(){const s=$("weekEmployee"),old=s.value;s.innerHTML="";employees.forEach(n=>{const o=document.createElement("option");o.value=n;o.textContent=n;s.appendChild(o)});if(old&&employees.includes(old))s.value=old;else if(selectedEmployee&&employees.includes(selectedEmployee))s.value=selectedEmployee}
+function weeklyScheduleRows(){return parseSheet("Weekly Schedule").map(r=>({
+ employee:canonicalStaffName(field(r,["Employee","Name","Staff Name"])),
+ type:String(field(r,["Employment Type","Type"])||"").trim(),
+ day:String(field(r,["Day","Weekday"])||"").trim(),
+ shift:String(field(r,["Shift","Shift Type"])||"").trim(),
+ start:String(field(r,["Start","Start Time"])||"").trim(),
+ end:String(field(r,["End","End Time"])||"").trim(),
+ notes:String(field(r,["Notes","Note"])||"").trim()
+})).filter(r=>r.employee&&r.day&&r.shift)}
+function weeklyRows(){return weeklyScheduleRows().filter(r=>! /^(off|day off|days off)$/i.test(r.shift))}
+function renderWeek(){
+ const name=$("weekEmployee").value,day=$("weekDay").value;
+ const all=weeklyRows().filter(r=>normalize(r.employee)===normalize(name));
+ const rows=all.filter(r=>!day||normalize(r.day)===normalize(day)).sort((a,b)=>DAYS.indexOf(a.day)-DAYS.indexOf(b.day));
+ const uniqueDays=[...new Set(all.map(r=>r.day))];
+ const off=DAYS.filter(d=>!uniqueDays.some(x=>normalize(x)===normalize(d)));
+ $("weekSummary").textContent=name?`${name} · ${all.length} scheduled shift(s) · ${all.length*8} paid hours/week · ${off.length} day(s) off${off.length?": "+off.join(", "):""}`:"Choose an employee.";
+ const host=$("weekTable");host.innerHTML="";
+ if(!rows.length){host.innerHTML='<div class="empty-state">No scheduled shift found for this employee and filter.</div>';return}
+ const roles=[
+  {key:"Surf Coach Zone 1",aliases:["Surf Coach Zone 1","Pool Pusher (Zone 1)","Zone 1"],title:"SURF COACH",subtitle:"Zone 1 · left side",kind:"blue"},
+  {key:"Surf Coach Zone 5",aliases:["Surf Coach Zone 5","Pool Catcher (Zone 5)","Zone 5"],title:"SURF COACH",subtitle:"Zone 5 · right side",kind:"blue"},
+  {key:"Surf Coach Zone 2",aliases:["Surf Coach Zone 2","Zone 2"],title:"SURF COACH",subtitle:"Zone 2",kind:"blue"},
+  {key:"Surf Coach Zone 3",aliases:["Surf Coach Zone 3","Zone 3"],title:"SURF COACH",subtitle:"Zone 3",kind:"blue"},
+  {key:"Surf Coach Zone 4",aliases:["Surf Coach Zone 4","Zone 4"],title:"SURF COACH",subtitle:"Zone 4",kind:"blue"}
+ ];
+ const sheetRows=sheetName=>parseSheet(sheetName);
+ const rowFor=(sheetName,d,h)=>sheetRows(sheetName).find(x=>
+  normalize(field(x,["Day","Weekday","Day Name"]))===normalize(d)&&
+  hourStart(field(x,["Hour","Time","Time Slot","Rotation","Pool Party Hour"]))===h
+ );
+ const weeklyCrewFor=(d,shift)=>weeklyScheduleRows()
+  .filter(x=>normalize(x.day)===normalize(d)&&normalize(x.shift)===normalize(shift))
+  .map(x=>x.employee)
+  .filter((n,i,a)=>n&&a.findIndex(v=>normalize(v)===normalize(n))===i)
+  .sort((a,b)=>STAFF_NAMES.findIndex(n=>normalize(n)===normalize(a))-STAFF_NAMES.findIndex(n=>normalize(n)===normalize(b)));
+ const poolPartyFor=(d,h)=>sheetRows("Pool Party Coverage").find(x=>
+  normalize(field(x,["Day","Weekday","Day Name"]))===normalize(d)&&
+  hourStart(field(x,["Pool Party Hour","Hour","Time","Time Slot"]))===h
+ );
+ const positionFor=(d,shift,h,employee)=>{
+  // Pool-party coverage is a separate 10-person allocation and must take priority
+  // over the standard five-person rotation.
+  if(h===11||h===13){
+   const c=poolPartyFor(d,h);
+   if(c){
+    const pool=splitNames(field(c,["Pool (5)","Pool","Pool Staff"]));
+    const tower=splitNames(field(c,["Tower (2)","Tower","Tower Staff"]));
+    const board=splitNames(field(c,["Board Room (3)","Board Room","Board Room Staff"]));
+    const pi=pool.findIndex(n=>normalize(n)===normalize(employee));
+    if(pi>=0)return {title:"SURF COACH",subtitle:`Zone ${pi+1}${pi===0?" · left side":pi===4?" · right side":""}`,kind:"blue"};
+    const ti=tower.findIndex(n=>normalize(n)===normalize(employee));
+    if(ti>=0)return {title:"CONTROL TOWER",subtitle:`Tower ${ti===0?"A":"B"}`,kind:"orange"};
+    const bi=board.findIndex(n=>normalize(n)===normalize(employee));
+    if(bi>=0)return {title:`BOARD ROOM ${String.fromCharCode(65+bi)}`,subtitle:"Check in / check out",kind:"green"};
+   }
+  }
+  // First honor an explicit assignment in the hourly Google-Sheets-backed row.
+  // If a row/cell is blank, do not show "ASSIGNMENT MISSING": derive the position
+  // from the same Weekly Schedule used by Whole Team and My Week.
+  const sourceSheet=(h<11||h===14)?"AM Hourly Rotation":"PM Hourly Rotation";
+  const hourly=rowFor(sourceSheet,d,h);
+  if(hourly){
+   for(const role of roles){
+    const assigned=splitNames(field(hourly,role.aliases));
+    if(assigned.some(n=>normalize(n)===normalize(employee))){
+     return {title:role.title,subtitle:role.subtitle,kind:role.kind};
+    }
+   }
+  }
+  const crew=weeklyCrewFor(d,shift);
+  const employeeIndex=crew.findIndex(n=>normalize(n)===normalize(employee));
+  if(employeeIndex>=0){
+   // A standard shift has five positions. Rotate through working hours only; lunch pauses progression. Pool-party hours are working steps. This fallback is used only where the hourly sheet has no assignment.
+   const shiftStart=shift==="AM"?7:11;
+   // Lunch is a pause, not a rotation slot. Count only actual working hours
+   // from the start of this crew's shift. Pool-party hours (11 AM and 1 PM)
+   // are working hours and therefore advance the rotation normally.
+   let workingSteps=0;
+   for(let step=shiftStart;step<h;step++){
+    const isThisCrewLunch=(shift==="AM"&&step===12)||(shift==="PM"&&step===14);
+    if(!isThisCrewLunch)workingSteps++;
+   }
+   // Rotate the starting point across the week so staff do not repeatedly land
+   // in the same role each day. Lunch does not affect this day-to-day offset.
+   const dayIndex=Math.max(0,DAYS.findIndex(x=>normalize(x)===normalize(d)));
+   const roleIndex=((employeeIndex+workingSteps+dayIndex)%roles.length+roles.length)%roles.length;
+   return {title:roles[roleIndex].title,subtitle:roles[roleIndex].subtitle,kind:roles[roleIndex].kind};
+  }
+  return null;
+ };
+ rows.forEach(r=>{
+  const section=document.createElement("article");section.className="week-day-card";
+  const head=document.createElement("div");head.className="week-day-head";
+  const title=document.createElement("h3");title.textContent=r.day;head.appendChild(title);
+  const badge=document.createElement("span");badge.className="week-day-shift "+(/^AM/i.test(r.shift)?"shift-am":"shift-pm");badge.textContent=`${r.shift} · ${r.start} – ${r.end}`;head.appendChild(badge);section.appendChild(head);
+  const grid=document.createElement("div");grid.className="week-assignment-grid";
+  const startHour=hourStart(r.start),endHour=hourStart(r.end);
+  const fullHour=x=>{const hh=((x%24)+24)%24;return `${hh%12||12}:00 ${hh<12?"AM":"PM"}`};
+  for(let h=startHour;h<endHour;h++){
+   const card=document.createElement("article");card.className="week-assignment-card";
+   const time=document.createElement("div");time.className="week-assignment-time";time.textContent=`${fullHour(h)}–${fullHour(h+1)}`;
+   const label=document.createElement("div");label.className="week-assignment-title";
+   const sub=document.createElement("div");sub.className="week-assignment-subtitle";
+   if((/^AM/i.test(r.shift)&&h===12)||(/^PM/i.test(r.shift)&&h===14)){
+    card.classList.add("lunch");label.textContent="LUNCH BREAK";sub.textContent="Paid lunch break";
+   }else{
+    const position=positionFor(r.day,/^AM/i.test(r.shift)?"AM":"PM",h,name);
+    if(position){card.classList.add(position.kind);label.textContent=position.title;sub.textContent=position.subtitle}
+    else{card.classList.add("missing");label.textContent="CHECK SCHEDULE";sub.textContent="No hourly or weekly shift assignment found"}
+   }
+   card.append(time,label,sub);grid.appendChild(card);
+  }
+  section.appendChild(grid);host.appendChild(section);
+ });
+}
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+let highlightedTeamEmployee="",teamViewMode="week",selectedMonthWeek="all",selectedMonthKey="";
+function teamViewButtons(){document.querySelectorAll("[data-team-view]").forEach(btn=>{btn.classList.toggle("active",btn.dataset.teamView===teamViewMode);btn.setAttribute("aria-pressed",String(btn.dataset.teamView===teamViewMode));btn.onclick=()=>{teamViewMode=btn.dataset.teamView;renderTeam()}})}
+function monthlyScheduleData(){
+ const rows=parseSheet("Monthly Employee Schedule");
+ if(!rows.length)return {dates:[],rows:[]};
+ const dates=[];
+ Object.keys(rows[0]||{}).forEach(key=>{if(["employee","name","staff name","type","employment type"].includes(normalize(key)))return;const d=parseScheduleDate(key);if(d)dates.push({key,date:d})});
+ dates.sort((a,b)=>a.date-b.date);
+ const uniqueDates=dates.filter((x,i)=>!i||x.date.getTime()!==dates[i-1].date.getTime());
+ const data=rows.map(r=>({name:canonicalStaffName(field(r,["Employee","Name","Staff Name"])),type:String(field(r,["Type","Employment Type"])||"").trim(),values:uniqueDates.map(d=>String(r[d.key]??"").trim().toUpperCase())})).filter(r=>r.name);
+ return {dates:uniqueDates,rows:data};
+}
+function renderTeam(){
+ teamViewButtons();
+ const pillHost=$("teamEmployeePills");pillHost.innerHTML="";
+ const clear=document.createElement("button");clear.className="pill"+(!highlightedTeamEmployee?" selected":"");clear.textContent="Clear";clear.onclick=()=>{highlightedTeamEmployee="";renderTeam()};pillHost.appendChild(clear);
+ STAFF_NAMES.forEach(name=>{const b=document.createElement("button");b.className="pill"+(normalize(highlightedTeamEmployee)===normalize(name)?" selected":"");b.textContent=name;b.onclick=()=>{highlightedTeamEmployee=normalize(highlightedTeamEmployee)===normalize(name)?"":name;renderTeam()};pillHost.appendChild(b)});
+ const host=$("teamTable");host.innerHTML="";
+ if(teamViewMode==="month"){
+  host.classList.add("month-view");
+  const monthly=monthlyScheduleData(),allDates=monthly.dates;
+  const filterWrap=$("teamMonthWeekFilter"),weekSelect=$("teamWeekSelect"),monthSelect=$("teamMonthSelect");
+  if(filterWrap)filterWrap.classList.remove("hidden");
+  if(!allDates.length){$("teamSummary").textContent="Monthly schedule data is not available in the connected roster.";host.innerHTML='<div class="empty-state">No Monthly Employee Schedule data found in the connected roster.</div>';return}
+  const monthKey=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+  const mondayOf=d=>{const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());x.setDate(x.getDate()-((x.getDay()+6)%7));x.setHours(0,0,0,0);return x};
+  const dateKey=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  const weekLabel=(a,b)=>{const fmt=d=>new Intl.DateTimeFormat("en-US",{month:"short",day:"numeric"}).format(d);return `${fmt(a)} – ${fmt(b)}`};
+  const monthGroups=new Map();
+  allDates.forEach(item=>{const key=monthKey(item.date);if(!monthGroups.has(key))monthGroups.set(key,[]);monthGroups.get(key).push(item)});
+  const monthOptions=[...monthGroups.entries()];
+  if(!selectedMonthKey||!monthGroups.has(selectedMonthKey))selectedMonthKey=(echoData&&echoData.selectedDate?echoData.selectedDate.slice(0,7):monthOptions[0][0]);
+  if(monthSelect){monthSelect.innerHTML="";monthOptions.forEach(([key,items])=>{const opt=document.createElement("option");opt.value=key;opt.textContent=new Intl.DateTimeFormat("en-US",{month:"long",year:"numeric"}).format(items[0].date);monthSelect.appendChild(opt)});monthSelect.value=selectedMonthKey;monthSelect.onchange=()=>{selectedMonthKey=monthSelect.value;selectedMonthWeek="all";renderTeam()};}
+  const datesForMonth=monthGroups.get(selectedMonthKey)||[];
+  const weeks=new Map();
+  datesForMonth.forEach(item=>{const start=mondayOf(item.date),key=dateKey(start);if(!weeks.has(key)){const end=new Date(start);end.setDate(end.getDate()+6);weeks.set(key,{start,end,label:weekLabel(start,end)});}});
+  const weekOptions=[...weeks.entries()];
+  if(weekSelect){
+   weekSelect.innerHTML="";
+   const monthName=new Intl.DateTimeFormat("en-US",{month:"long"}).format(datesForMonth[0]?.date||new Date());
+   const allOpt=document.createElement("option");allOpt.value="all";allOpt.textContent=`All ${monthName}`;weekSelect.appendChild(allOpt);
+   weekOptions.forEach(([key,w])=>{const opt=document.createElement("option");opt.value=key;opt.textContent=w.label;weekSelect.appendChild(opt)});
+   if(!weekOptions.some(([key])=>key===selectedMonthWeek))selectedMonthWeek="all";
+   weekSelect.value=selectedMonthWeek;
+   weekSelect.onchange=()=>{selectedMonthWeek=weekSelect.value;renderTeam()};
+  }
+  const monthDates=datesForMonth;
+  const dates=selectedMonthWeek==="all"?monthDates:monthDates.filter(item=>dateKey(mondayOf(item.date))===selectedMonthWeek);
+  const monthLabel=new Intl.DateTimeFormat("en-US",{month:"long",year:"numeric"}).format(monthDates[0].date);
+  const rows=STAFF_NAMES.map(name=>{const found=monthly.rows.find(r=>normalize(r.name)===normalize(name));const allVals=found?.values||allDates.map(()=>"");const vals=dates.map(d=>{const idx=allDates.findIndex(x=>x.date.getTime()===d.date.getTime());return allVals[idx]||""});return {name,values:vals,count:vals.filter(v=>v==="AM"||v==="PM").length}});
+  const scheduled=rows.reduce((n,r)=>n+r.count,0),tbd=rows.reduce((n,r)=>n+r.values.filter(v=>!v||!["AM","PM","OFF"].includes(v)).length,0);
+  const selectionLabel=selectedMonthWeek==="all"?`All ${monthLabel}`:(weeks.get(selectedMonthWeek)?.label||"Selected week");
+  const completeWeek=selectedMonthWeek!=="all"&&dates.length===7;
+  $("teamSummary").textContent=`${monthLabel} · ${selectionLabel} · ${rows.length} employees · ${scheduled} scheduled shift(s)${completeWeek?` · ${scheduled===70?"70-shift target met":"Check 70-shift target"}`:""} · ${tbd} TBD day(s). Blank cells are not days off.`;
+  const table=document.createElement("table");table.className="team-grid";
+  const headers=["NAME",...dates.map(x=>`${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][x.date.getDay()]} ${x.date.getDate()}`),"SHIFTS"];
+  table.innerHTML="<thead><tr>"+headers.map(x=>`<th>${esc(x)}</th>`).join("")+"</tr></thead>";
+  const body=document.createElement("tbody");
+  rows.forEach(r=>{
+   const tr=document.createElement("tr");if(normalize(highlightedTeamEmployee)===normalize(r.name))tr.className="highlighted";
+   const nameTd=document.createElement("td"),nameBtn=document.createElement("button");nameBtn.className="team-name-btn";nameBtn.textContent=r.name;nameBtn.onclick=()=>{highlightedTeamEmployee=normalize(highlightedTeamEmployee)===normalize(r.name)?"":r.name;renderTeam()};nameTd.appendChild(nameBtn);tr.appendChild(nameTd);
+   r.values.forEach((value,i)=>{const td=document.createElement("td"),btn=document.createElement("button");btn.type="button";btn.className="month-shift "+(value==="AM"?"am":value==="PM"?"pm":value==="OFF"?"off":"tbd");btn.textContent=value==="AM"||value==="PM"||value==="OFF"?value.toLowerCase():"TBD";btn.title=`${r.name} · ${dates[i].date.toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"})} · ${value||"TBD"}`;btn.onclick=()=>{highlightedTeamEmployee=normalize(highlightedTeamEmployee)===normalize(r.name)?"":r.name;renderTeam()};td.appendChild(btn);tr.appendChild(td)});
+   const total=document.createElement("td");total.className="team-total";total.textContent=String(r.count);tr.appendChild(total);body.appendChild(tr);
+  });
+  table.appendChild(body);host.appendChild(table);return;
+ }
+ host.classList.remove("month-view");
+ const filterWrap=$("teamMonthWeekFilter");if(filterWrap)filterWrap.classList.add("hidden");
+ const raw=weeklyRows(),ordered=[...STAFF_NAMES],byEmployee=new Map();
+ raw.forEach(r=>{const key=normalize(r.employee);if(!byEmployee.has(key))byEmployee.set(key,{name:r.employee,days:{}});byEmployee.get(key).days[normalize(r.day)]=r});
+ const rows=ordered.map(name=>{const data=byEmployee.get(normalize(name));const cells=DAYS.map(day=>data?.days[normalize(day)]||null);return {name,cells,count:cells.filter(Boolean).length}});
+ $("teamSummary").textContent=`${raw.length} scheduled shift(s) · ${ordered.length} employees · 8 paid hours per shift including 1-hour paid lunch.`;
+ if(!rows.some(r=>r.count)){host.innerHTML='<div class="empty-state">No weekly employee schedule found.</div>';return}
+ const table=document.createElement("table");table.className="team-grid";table.innerHTML="<thead><tr>"+["NAME",...DAYS.map(d=>d.slice(0,3).toUpperCase()),"SHIFTS"].map(x=>`<th>${esc(x)}</th>`).join("")+"</tr></thead>";
+ const body=document.createElement("tbody");
+ rows.forEach(r=>{const tr=document.createElement("tr");if(normalize(highlightedTeamEmployee)===normalize(r.name))tr.className="highlighted";const nameTd=document.createElement("td"),nameBtn=document.createElement("button");nameBtn.className="team-name-btn";nameBtn.textContent=r.name;nameBtn.onclick=()=>{$("weekEmployee").value=r.name;selectedEmployee=r.name;switchTab("week");renderWeek()};nameTd.appendChild(nameBtn);tr.appendChild(nameTd);
+  r.cells.forEach((shift,i)=>{const td=document.createElement("td");if(!shift){const span=document.createElement("span");span.className="shift-badge shift-off";span.textContent="off";td.appendChild(span)}else{const span=document.createElement("button"),label=/^am/i.test(shift.shift)?"AM":/^pm/i.test(shift.shift)?"PM":shift.shift;span.className="shift-badge "+(label==="AM"?"shift-am":"shift-pm");span.textContent=label;span.title=`${r.name} · ${DAYS[i]} · ${shift.start}–${shift.end}`;span.onclick=()=>{$("weekEmployee").value=r.name;$("weekDay").value=DAYS[i];selectedEmployee=r.name;switchTab("week");renderWeek()};td.appendChild(span)}tr.appendChild(td)});
+  const total=document.createElement("td");total.className="team-total";total.textContent=String(r.count);tr.appendChild(total);body.appendChild(tr)});
+ table.appendChild(body);host.appendChild(table);
+}
+function hourLabel(s){return String(s||"").replace(/\s*-\s*/," – ")}
+function nextRow(day,time){const rows=allRows.filter(r=>normalize(r.day)===normalize(day)).sort((a,b)=>hourStart(a.time)-hourStart(b.time));const i=rows.findIndex(r=>r.time===time||hourStart(r.time)===hourStart(time));return i>=0?rows[i+1]||null:null}
+function assignmentValues(row){const p=row?.positions||{};return [p["Pool Pusher (Zone 1)"],p["Pool Catcher (Zone 5)"],p["Control Tower"],p["Board Room A"],p["Board Room B"]].map(v=>splitNames(v).join(", ")||"—")}
+function makeAssignmentCard(index,title,subtitle,name,small=false,color=null){const colors=["green","blue","orange","purple","pink"];const card=document.createElement("article");card.className="assignment-card "+(color||colors[index%colors.length]);card.innerHTML=`<div class="assignment-head"><span>${index+1}</span><div><b>${title}</b><small>${subtitle}</small></div></div><div class="assignment-visual"><span class="person-icon" aria-hidden="true"></span></div><div class="assignment-name"></div>`;card.querySelector(".assignment-name").textContent=name||"—";return card}function renderSchedule(){
+ const host=$("hourlySchedule");if(!host)return;
+ // renderSchedule is called by renderAll and again by renderVisualCards.
+ // Clear the previous table before drawing so repeated refreshes never append
+ // a second copy of the hours or another table header.
+ host.innerHTML="";
+ const day=$("daySelect").value,rows=allRows.filter(r=>normalize(r.day)===normalize(day)).sort((a,b)=>hourStart(a.time)-hourStart(b.time));
+ if(!rows.length){host.innerHTML='<div class="empty-state">No hourly rotation rows found for this day.</div>';return}
+ const heads=["TIME","SURF COACH · ZONE 1","SURF COACH · ZONE 5","CONTROL TOWER A","BOARD ROOM A","BOARD ROOM B","SURF COACH · ZONE 2","SURF COACH · ZONE 3","SURF COACH · ZONE 4","CONTROL TOWER B","BOARD ROOM C"];
+ // Keep source data in its canonical slot order, then render columns in the requested visual order.
+ const displayOrder=[0,4,5,7,8,1,2,3,6,9];
+ const table=document.createElement("table");table.innerHTML="<thead><tr>"+heads.map(h=>`<th>${esc(h)}</th>`).join("")+"</tr></thead>";
+ const body=document.createElement("tbody");
+ rows.forEach(r=>{
+  const tr=document.createElement("tr"),start=hourStart(r.time),partyHour=[11,13].includes(start);
+  if(start===hourStart($("hourSelect").value))tr.className="selected";
+  const tdTime=document.createElement("td"),b=document.createElement("button");b.textContent=shortHour(r.time);b.onclick=()=>{$("hourSelect").value=r.time;renderBoard()};tdTime.appendChild(b);tr.appendChild(tdTime);
+  const vals=Array(10).fill("");
+  if(partyHour){
+   const coverage=parseSheet("Pool Party Coverage").find(x=>normalize(field(x,["Day","Weekday","Day Name"]))===normalize(day)&&hourStart(field(x,["Pool Party Hour","Hour","Time","Time Slot"]))===start);
+   if(coverage){
+    const pool=scheduledNames(day,field(coverage,["Pool (5)","Pool","Pool Staff"]));
+    const tower=scheduledNames(day,field(coverage,["Tower (2)","Tower","Tower Staff"]));
+    const board=scheduledNames(day,field(coverage,["Board Room (3)","Board Room","Board Room Staff"]));
+    const partyValues=[pool[0],pool[1],pool[2],pool[3],pool[4],tower[0],tower[1],board[0],board[1],board[2]];
+    const crew=scheduledCrewForHour(day,start),used=new Set(partyValues.filter(Boolean).map(normalize));
+    partyValues.forEach((n,i)=>{if(n)return;const replacement=crew.find(x=>!used.has(normalize(x)));if(replacement){partyValues[i]=replacement;used.add(normalize(replacement));}});
+    partyValues.forEach((n,i)=>vals[i]=n||"");
+   } else {
+    // Fallback: show the five assignments from each source sheet across the ten positions.
+    const sources=(r.sourceRows||[r]).filter(x=>x&&x.positions);
+    const roleKeys=["Pool Pusher (Zone 1)","Pool Catcher (Zone 5)","Control Tower","Board Room A","Board Room B"];
+    sources.slice(0,2).forEach((src,si)=>roleKeys.forEach((key,ri)=>{vals[si*5+ri]=splitNames(src.positions[key]).join(", ")||""}));
+   }
+  } else {
+   const p=r.positions||{};
+   vals[0]=splitNames(p["Surf Coach Zone 1"]||p["Pool Pusher (Zone 1)"]).join(", ");
+   vals[1]=splitNames(p["Surf Coach Zone 2"]).join(", ");
+   vals[2]=splitNames(p["Surf Coach Zone 3"]).join(", ");
+   vals[3]=splitNames(p["Surf Coach Zone 4"]).join(", ");
+   vals[4]=splitNames(p["Surf Coach Zone 5"]||p["Pool Catcher (Zone 5)"]).join(", ");
+  }
+  displayOrder.forEach(i=>{const td=document.createElement("td");td.textContent=vals[i]||"";tr.appendChild(td)});
+  body.appendChild(tr);
+ });
+ table.appendChild(body);host.appendChild(table);
+}
+function coverageRowsFor(day,time){
+ const start=hourStart(time);
+ const matching=(allRows||[]).filter(r=>normalize(r.day)===normalize(day)&&hourStart(r.time)===start);
+ // For the 11 AM and 1 PM party sessions, the AM and PM hourly sheets contain
+ // separate five-person rows. Preserve both rather than choosing only the first.
+ return matching.flatMap(r=>r.sourceRows||[r]);
+}
+function cardAssignments(row,day,time){
+ const start=hourStart(time),special=[11,13].includes(start);
+ const defs=[
+  {title:"SURF COACH",subtitle:"Zone 1",color:"blue"},
+  {title:"SURF COACH",subtitle:"Zone 2",color:"blue"},
+  {title:"SURF COACH",subtitle:"Zone 3",color:"blue"},
+  {title:"SURF COACH",subtitle:"Zone 4",color:"blue"},
+  {title:"SURF COACH",subtitle:"Zone 5",color:"blue"},
+  {title:"CONTROL TOWER",subtitle:"Tower A",color:"orange"},
+  {title:"CONTROL TOWER",subtitle:"Tower B",color:"orange"},
+  {title:"BOARD ROOM A",subtitle:"",color:"green"},
+  {title:"BOARD ROOM B",subtitle:"",color:"green"},
+  {title:"BOARD ROOM C",subtitle:"",color:"green"}
+ ];
+ if(special){
+  // The dedicated tab groups staff by area. Names are mapped in listed order to the five pool zones.
+  const coverage=parseSheet("Pool Party Coverage").find(r=>{
+   const d=field(r,["Day","Weekday","Day Name"]);
+   const t=field(r,["Pool Party Hour","Hour","Time","Time Slot"]);
+   return normalize(d)===normalize(day)&&hourStart(t)===start;
+  });
+  if(coverage){
+   const pool=scheduledNames(day,field(coverage,["Pool (5)","Pool","Pool Staff"]));
+   const tower=scheduledNames(day,field(coverage,["Tower (2)","Tower","Tower Staff"]));
+   const board=scheduledNames(day,field(coverage,["Board Room (3)","Board Room","Board Room Staff"]));
+   const values=[pool[0],pool[1],pool[2],pool[3],pool[4],tower[0],tower[1],board[0],board[1],board[2]];
+   const crew=scheduledCrewForHour(day,start),used=new Set(values.filter(Boolean).map(normalize));
+   values.forEach((n,i)=>{if(n)return;const replacement=crew.find(x=>!used.has(normalize(x)));if(replacement){values[i]=replacement;used.add(normalize(replacement));}});
+   return defs.map((d,i)=>({...d,name:values[i]||"—",number:i+1}));
+  }
+  return defs.map((d,i)=>({...d,name:"—",number:i+1}));
+ }
+ const p=row?.positions||{};
+ return [
+  {...defs[0],name:splitNames(p["Pool Pusher (Zone 1)"]).join(", ")||"—",number:1},
+  {...defs[4],name:splitNames(p["Pool Catcher (Zone 5)"]).join(", ")||"—",number:2},
+  {...defs[5],name:splitNames(p["Control Tower"]).join(", ")||"—",number:3},
+  {...defs[7],name:splitNames(p["Board Room A"]).join(", ")||"—",number:4},
+  {...defs[8],name:splitNames(p["Board Room B"]).join(", ")||"—",number:5}
+ ];
+}
+function renderVisualCards(){
+ const day=$("daySelect").value,time=$("hourSelect").value,row=findRow(day,time),p=row?.positions||{};
+ const assignments=cardAssignments(row,day,time),hostCurrent=document.querySelector(".current-panel .assignment-cards");
+ hostCurrent.innerHTML="";hostCurrent.classList.toggle("party-coverage-cards",assignments.length>5);
+ assignments.forEach((a,i)=>hostCurrent.appendChild(makeAssignmentCard(i,a.title,a.subtitle,a.name,false,a.color)));
+ $("currentHourLabel").textContent=row?hourLabel(row.time):"No shift data";
+ const nxt=nextRow(day,time);$("nextHourLabel").textContent=nxt?hourLabel(nxt.time):"No next shift";
+ const host=$("nextHourCards");host.innerHTML="";const nextAssignments=cardAssignments(nxt,day,nxt?.time||"");
+ nextAssignments.forEach((a,i)=>host.appendChild(makeAssignmentCard(i,a.title,a.subtitle,a.name,true,a.color)));
+ const vals=assignmentValues(row);const flowMap=[["flowPusher",vals[0]],["flowCatcher",vals[1]],["flowTower",vals[2]],["flowBoardA",vals[3]],["flowBoardB",vals[4]]];flowMap.forEach(([id,v])=>$(id).textContent=v);renderSchedule()
+}
+function renderDayButtons(){const host=$("dayButtons");if(!host)return;host.innerHTML="";DAYS.forEach(d=>{const b=document.createElement("button");b.className="day-btn"+(normalize($("daySelect").value)===normalize(d)?" active":"");b.textContent=d.slice(0,3);if(normalize(d)===normalize(currentDay()))b.dataset.today="true";b.onclick=()=>{$("daySelect").value=d;populateTimes(false);renderAll()};host.appendChild(b)})}
+function renderHourButtons(){const host=$("hourButtons");if(!host)return;host.innerHTML="";[...$("hourSelect").options].forEach(o=>{const b=document.createElement("button");b.className="hour-btn"+(o.value===$("hourSelect").value?" active":"");const h=hourStart(o.value);b.textContent=h===0?"12a":h<12?`${h}a`:h===12?"12p":`${h-12}p`;b.title=o.value;b.onclick=()=>{$("hourSelect").value=o.value;renderAll()};host.appendChild(b)})}
+
+function crewNamesFromValue(value){return splitNames(value).filter(n=>employees.includes(n))}
+function renderCrewNames(id,names){const el=$(id);el.innerHTML="";const clean=[...new Set(names)].filter(n=>employees.includes(n));if(!clean.length){el.innerHTML='<span class="crew-empty">No crew assignment recorded</span>';return}clean.forEach(name=>{const span=document.createElement("span");span.className="crew-name";span.textContent=name;el.appendChild(span)})}
+function renderDailyCrew(){
+ const day=$("daySelect")?.value||currentDay();
+ $("dailyCrewDay").textContent=day;
+ const buckets={am:[],pm:[],off:[]};
+ // Whole Team / Weekly Schedule is the single source of truth for crew and days off.
+ // Do not read Daily Staffing here, and do not cap or reshuffle names: that caused
+ // the Daily Crew Overview to disagree with the employee's weekly schedule.
+ const rows=weeklyScheduleRows().filter(r=>normalize(r.day)===normalize(day));
+ rows.forEach(r=>{
+  const name=employees.find(n=>normalize(n)===normalize(r.employee));
+  if(!name)return;
+  const shift=normalize(r.shift);
+  if(/^(am|am crew|morning)$/.test(shift))buckets.am.push(name);
+  else if(/^(pm|pm crew|afternoon)$/.test(shift))buckets.pm.push(name);
+  else if(/^(off|day off|days off)$/.test(shift))buckets.off.push(name);
+ });
+ // Preserve roster order and unique names while matching each employee's Weekly Schedule row.
+ Object.keys(buckets).forEach(k=>buckets[k]=employees.filter(n=>buckets[k].some(x=>normalize(x)===normalize(n))));
+ renderCrewNames("dailyAmCrew",buckets.am);
+ renderCrewNames("dailyPmCrew",buckets.pm);
+ renderCrewNames("dailyDayOff",buckets.off);
+}
+
+function applyNameHighlights(){
+ // The top employee pill is a page-wide highlight filter. Highlight every
+ // rendered occurrence of that staff member, regardless of which section it is in.
+ document.querySelectorAll(".name-match-highlight").forEach(el=>el.classList.remove("name-match-highlight"));
+ if(!selectedEmployee)return;
+ const target=normalize(selectedEmployee);
+ const selectors=[
+  ".assignment-name", ".staff-tag", ".crew-name", ".map-live",
+  "#hourlySchedule td:not(:first-child)", "#weekSummary", ".team-name-btn",
+  ".team-grid td:not(:first-child)"
+ ];
+ document.querySelectorAll(selectors.join(",")).forEach(el=>{
+  const text=String(el.textContent||"").trim();
+  if(!text||text==="—")return;
+  const names=splitNames(text);
+  // Exact match or a comma/list-separated assignment containing this employee.
+  if(normalize(text)===target||names.some(n=>normalize(n)===target))el.classList.add("name-match-highlight");
+ });
+ // Highlight the matching employee row in Whole Team as well, without changing
+ // that section's own row-selection behavior.
+ document.querySelectorAll(".team-grid tbody tr").forEach(tr=>{
+  const first=tr.querySelector("td:first-child");
+  if(first&&normalize(first.textContent)===target)first.classList.add("name-match-highlight");
+ });
+}
+function renderAll(){
+ // Render the schedule first so an unrelated dashboard widget cannot hide it.
+ try{renderSchedule()}catch(e){console.error("Hourly schedule render failed:",e);const host=$("hourlySchedule");if(host)host.innerHTML='<div class="empty-state">The roster loaded, but the hourly schedule could not be displayed: '+esc(e.message||String(e))+'</div>'}
+ const tasks=[renderPills,renderDayButtons,renderHourButtons,renderDailyCrew,renderBoard,renderVisualCards,populateEmployees,renderWeek,renderTeam];
+ tasks.forEach(fn=>{try{fn()}catch(e){console.error("Dashboard section failed:",fn.name,e)}});
+ applyNameHighlights();
+}
+function switchTab(tab){document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.tab===tab));$("liveView").classList.toggle("hidden",tab!=="live");$("weekView").classList.toggle("hidden",tab!=="week");$("teamView").classList.toggle("hidden",tab!=="team");if(tab==="week")renderWeek();if(tab==="team")renderTeam()}
+async function fetchData(){
+ let phase="requesting Firebase";
+ try{
+  const res=await fetch(DATABASE_URL+DATA_PATH,{cache:"no-store"});
+  if(!res.ok)throw Error("Firebase request failed (HTTP "+res.status+").");
+  phase="reading Firebase JSON";
+  const data=await res.json();
+  if(!data||typeof data!=="object")throw Error("Firebase returned no JSON object.");
+  const payload=data.echo||data.data||data;
+  const sheets=payload.sheets||(payload.surfOps&&payload.surfOps.sheets);
+  const isEcho=!!(payload["Monthly Employee Schedule"]&&payload["Weekly Schedule"]&&payload["AM Hourly Rotation"]);
+  if(!isEcho&&(!sheets||typeof sheets!=="object")){
+   const keys=Object.keys(payload).slice(0,12).join(", ")||"none";
+   throw Error("Firebase JSON does not contain the exported schedule sections or a legacy sheets object. Top-level keys: "+keys+".");
+  }
+  rootData=data;echoData=isEcho?payload:null;sheetMap=isEcho?makeEchoSheets(payload):sheets;
+  renderScheduleWeek();allRows=getAllAssignments();employees=parseEmployees();
+  const selectedDate=(echoData&&echoData.selectedDate)||"";
+  const selectedDay=selectedDate?new Intl.DateTimeFormat("en-US",{weekday:"long",timeZone:"UTC"}).format(new Date(selectedDate+"T12:00:00Z")):currentDay();
+  const day=DAYS.includes(selectedDay)?selectedDay:currentDay();$("daySelect").value=DAYS.includes(day)?day:"Monday";
+  populateTimes(false);
+  connected(true,"Firebase connected · loading roster sections…");
+  phase="rendering dashboard";
+  renderAll();
+  connected(true,"Live connected · roster refreshed");
+  $("updatedLabel").textContent="Updated "+timeText()+" Cabo time";
+ }catch(e){
+  console.error("Cabo Real roster error during "+phase+":",e);
+  connected(false,(phase==="requesting Firebase"||phase==="reading Firebase JSON"?"Firebase response issue: ":"Dashboard error: ")+(e.message||String(e)).slice(0,110));
+  const detail=$("statusDetail");if(detail)detail.textContent=phase+": "+(e.message||String(e));
+  const status=$("operatingStatus");if(status)status.textContent=phase==="requesting Firebase"||phase==="reading Firebase JSON"?"Roster connection failed":"Dashboard rendering error";
+  const schedule=$("hourlySchedule");
+  if(schedule&&!rootData)schedule.innerHTML='<div class="empty-state">'+esc((e.message||String(e))+". Check the Firebase URL, data path, and read permissions.")+'</div>';
+ }
+}
+function tick(){const p=parts();$("liveClock").textContent=timeText();$("dateLabel").textContent=`${p.weekday} · ${p.month} ${p.day} · Cabo time`;const open=currentHour()>=7&&currentHour()<19;$("operatingStatus").textContent=open?"Club operating hours":"Club currently closed"}
+$("daySelect").addEventListener("change",()=>{populateTimes(false);renderAll()});$("hourSelect").addEventListener("change",renderAll);$("nowButton").addEventListener("click",()=>{$("daySelect").value=currentDay();populateTimes(false);const m=[...$("hourSelect").options].find(o=>hourStart(o.value)===currentHour());if(m)$("hourSelect").value=m.value;renderAll()});$("weekEmployee").addEventListener("change",renderWeek);$("weekDay").addEventListener("change",renderWeek);document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>switchTab(b.dataset.tab)));tick();setInterval(tick,15000);fetchData();setInterval(fetchData,REFRESH_MS);
+</script>
+</body>
+</html>
