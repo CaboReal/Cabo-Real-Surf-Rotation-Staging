@@ -686,70 +686,57 @@ function getAllAssignments(){
   }
  });
  const result=[...grouped.values()].sort((a,b)=>DAYS.indexOf(a.day)-DAYS.indexOf(b.day)||hourStart(a.time)-hourStart(b.time));
- // Recalculate exported regular rotations from each shift's first regular row.
- // Pool-party hours (11 AM and 1 PM) and lunch (12 PM / 2 PM) are pauses:
- // none of them advances the five-position regular rotation.
- if(echoData&&echoData.selectedDate){
-  ["AM","PM"].forEach(shift=>{
-   const sourceName=shift.toLowerCase();
-   const shiftRows=result.filter(r=>(r.sourceRows||[r]).some(x=>x.source===sourceName));
-   const seedRow=shiftRows.find(r=>{
-    const h=hourStart(r.time);
-    return (shift==="AM"?h===7:h===12) &&
-      (r.sourceRows||[r]).some(x=>x.source===sourceName&&normalize(field(x.raw,["Type"]))==="rotation");
-   });
-   if(!seedRow)return;
-   const seed=regularPositionValues(seedRow);
-   if(seed.filter(Boolean).length!==5)return;
-   shiftRows.forEach(r=>{
-    const h=hourStart(r.time);
-    const source=(r.sourceRows||[r]).find(x=>x.source===sourceName);
-    if(!source||normalize(field(source.raw,["Type"]))!=="rotation")return;
-    let steps=0;
-    const start=shift==="AM"?7:11;
-    for(let t=start;t<h;t++){
-     if([11,12,13,14].includes(t))continue;
-     steps++;
-    }
-    const rotated=seed.map((_,i)=>seed[(i-steps+5)%5]);
-    r.positions["Surf Coach Zone 1"]=rotated[0];
-    r.positions["Surf Coach Zone 5"]=rotated[1];
-    r.positions["Surf Coach Zone 4"]=rotated[2];
-    r.positions["Surf Coach Zone 3"]=rotated[3];
-    r.positions["Surf Coach Zone 2"]=rotated[4];
-    r.positions["Pool Pusher (Zone 1)"]=rotated[0];
-    r.positions["Pool Catcher (Zone 5)"]=rotated[1];
-    r.positions["Control Tower A"]=rotated[2];
-    r.positions["Control Tower"]=rotated[2];
-    r.positions["Board Room A"]=rotated[3];
-    r.positions["Board Room B"]=rotated[4];
-   });
-  });
- }
- // Reconcile legacy hourly assignments against the Weekly Schedule without deleting
- // whole positions. Keep valid assigned names, then fill vacancies from staff actually
- // scheduled for that day and shift. This avoids the previous all-blank result when a
- // source rotation named somebody who is off.
+ // Rebuild every regular-hour rotation from that weekday's own shift seed.
+ // AM starts at 7 AM; PM's first regular hour is 3 PM because 11 AM/1 PM
+ // are pool-party coverage and 12 PM/2 PM are lunch. None advances rotation.
+ const seedFor=(day,source,startHour)=>{
+  const seedRow=raw.find(x=>normalize(x.day)===normalize(day)&&x.source===source&&hourStart(x.time)===startHour);
+  let seed=seedRow?[
+   seedRow.positions["Pool Pusher (Zone 1)"],
+   seedRow.positions["Pool Catcher (Zone 5)"],
+   seedRow.positions["Control Tower"],
+   seedRow.positions["Board Room A"],
+   seedRow.positions["Board Room B"]
+  ].map(v=>splitNames(v)[0]||""):[];
+  // If a live sheet seed is malformed, use the five people actually rostered
+  // for that shift, in Weekly Schedule order, rather than propagate duplicates.
+  if(seed.length!==5||seed.some(v=>!v)||new Set(seed.map(normalize)).size!==5){
+   const shift=source.toUpperCase();
+   seed=weeklyScheduleRows()
+    .filter(x=>normalize(x.day)===normalize(day)&&normalize(x.shift)===normalize(shift))
+    .map(x=>canonicalStaffName(x.employee))
+    .filter((v,i,a)=>v&&a.findIndex(n=>normalize(n)===normalize(v))===i)
+    .slice(0,5);
+  }
+  return seed.length===5&&new Set(seed.map(normalize)).size===5?seed:null;
+ };
+ const seeds=new Map();
+ DAYS.forEach(day=>{
+  seeds.set(normalize(day)+"|am",seedFor(day,"am",7));
+  seeds.set(normalize(day)+"|pm",seedFor(day,"pm",15));
+ });
  result.forEach(r=>{
-  const isExportedDate=!!(echoData&&r.raw&&String(r.raw.Date||"")===String(echoData.selectedDate||""));
-  if(isExportedDate)return; // exported rotation assignments are authoritative; never reassign their positions
-  const h=hourStart(r.time); if([11,13].includes(h)) return; // party-hour coverage is handled from its dedicated sheet
-  const crew=scheduledCrewForHour(r.day,h);
-  if(!crew.length)return;
-  const keys=["Pool Pusher (Zone 1)","Pool Catcher (Zone 5)","Control Tower","Board Room A","Board Room B"];
-  const used=new Set();
-  keys.forEach(k=>{
-   const name=splitNames(r.positions[k]).find(n=>crew.some(c=>normalize(c)===normalize(n))&&!used.has(normalize(n)));
-   if(name){r.positions[k]=name;used.add(normalize(name));}else r.positions[k]="";
-  });
-  keys.forEach(k=>{
-   if(r.positions[k])return;
-   const next=crew.find(n=>!used.has(normalize(n)));
-   if(next){r.positions[k]=next;used.add(normalize(next));}
-  });
-  // Keep the additional zone keys aligned with the five visible core positions.
-  r.positions["Surf Coach Zone 1"]=r.positions["Pool Pusher (Zone 1)"];
-  r.positions["Surf Coach Zone 5"]=r.positions["Pool Catcher (Zone 5)"];
+  const h=hourStart(r.time);
+  if([11,12,13,14].includes(h))return; // party and lunch hours are pauses
+  const source=h>=7&&h<=10?"am":h>=15&&h<=18?"pm":null;
+  if(!source)return;
+  const seed=seeds.get(normalize(r.day)+"|"+source);
+  if(!seed)return;
+  const startHour=source==="am"?7:15;
+  const steps=h-startHour;
+  const rotated=seed.map((_,i)=>seed[(i-steps+5)%5]);
+  // The same five unique people rotate through the five regular posts.
+  r.positions["Pool Pusher (Zone 1)"]=rotated[0];
+  r.positions["Pool Catcher (Zone 5)"]=rotated[1];
+  r.positions["Control Tower"]=rotated[2];
+  r.positions["Control Tower A"]=rotated[2];
+  r.positions["Board Room A"]=rotated[3];
+  r.positions["Board Room B"]=rotated[4];
+  r.positions["Surf Coach Zone 1"]=rotated[0];
+  r.positions["Surf Coach Zone 5"]=rotated[1];
+  r.positions["Surf Coach Zone 4"]=rotated[2];
+  r.positions["Surf Coach Zone 3"]=rotated[3];
+  r.positions["Surf Coach Zone 2"]=rotated[4];
  });
  return result;
 }
