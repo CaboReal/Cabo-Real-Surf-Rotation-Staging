@@ -590,6 +590,7 @@ const DATA_PATH="/surfOps.json",REFRESH_MS=30000,CABO_TZ="America/Mazatlan";
 const DAYS=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 const STAFF_NAMES=["Kody","Ana","Bernardo","Diana","Felix","Fernando","Green","Linden","Lucho","Makeni","Marley","Pollo","Pomo","Tlaca","Toni","Wikin"];
 let rootData=null,sheetMap={},employees=[...STAFF_NAMES],selectedEmployee="",allRows=[],echoData=null;
+let boardSelectionLocked=false; // Keep a manually selected day/hour during background data refreshes.
 const $=id=>document.getElementById(id),normalize=s=>String(s??"").trim().toLowerCase().replace(/\s+/g," ");
 function asArray(v){if(Array.isArray(v))return v;if(v&&typeof v==="object")return Object.keys(v).sort((a,b)=>Number(a)-Number(b)).map(k=>v[k]);return []}
 function makeEchoSheets(data){
@@ -1255,6 +1256,9 @@ function renderAll(){
 }
 function switchTab(tab){document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.tab===tab));$("liveView").classList.toggle("hidden",tab!=="live");$("weekView").classList.toggle("hidden",tab!=="week");$("teamView").classList.toggle("hidden",tab!=="team");if(tab==="week")renderWeek();if(tab==="team")renderTeam()}
 async function fetchData(){
+ const heldDay=$("daySelect")?.value||"";
+ const heldHour=$("hourSelect")?.value||"";
+ const holdSelection=boardSelectionLocked;
  let phase="requesting Firebase";
  try{
   const res=await fetch(DATABASE_URL+DATA_PATH,{cache:"no-store"});
@@ -1292,8 +1296,10 @@ async function fetchData(){
   renderScheduleWeek();allRows=getAllAssignments();employees=parseEmployees();
   const selectedDate=(echoData&&echoData.selectedDate)||"";
   const selectedDay=selectedDate?new Intl.DateTimeFormat("en-US",{weekday:"long",timeZone:"UTC"}).format(new Date(selectedDate+"T12:00:00Z")):currentDay();
-  const day=DAYS.includes(selectedDay)?selectedDay:currentDay();$("daySelect").value=day;
-  populateTimes(false);
+  const day=holdSelection&&DAYS.includes(heldDay)?heldDay:(DAYS.includes(selectedDay)?selectedDay:currentDay());
+  $("daySelect").value=day;
+  populateTimes(holdSelection);
+  if(holdSelection&&heldHour&&[...$("hourSelect").options].some(o=>o.value===heldHour))$("hourSelect").value=heldHour;
   connected(true,"Live connected · published schedule loaded");
   phase="rendering dashboard";renderAll();
   connected(true,"Live connected · roster refreshed");
@@ -1305,14 +1311,16 @@ async function fetchData(){
   renderScheduleWeek();allRows=getAllAssignments();employees=parseEmployees();
   const selectedDate=echoData.selectedDate||"";
   const selectedDay=selectedDate?new Intl.DateTimeFormat("en-US",{weekday:"long",timeZone:"UTC"}).format(new Date(selectedDate+"T12:00:00Z")):currentDay();
-  $("daySelect").value=DAYS.includes(selectedDay)?selectedDay:"Monday";
-  populateTimes(false);renderAll();
+  $("daySelect").value=holdSelection&&DAYS.includes(heldDay)?heldDay:(DAYS.includes(selectedDay)?selectedDay:"Monday");
+  populateTimes(holdSelection);
+  if(holdSelection&&heldHour&&[...$("hourSelect").options].some(o=>o.value===heldHour))$("hourSelect").value=heldHour;
+  renderAll();
   connected(true,"Using verified published schedule export · Firebase unavailable");
   $("updatedLabel").textContent="Export loaded · "+timeText()+" Cabo time";
  }
 }
 function tick(){const p=parts();$("liveClock").textContent=timeText();$("dateLabel").textContent=`${p.weekday} · ${p.month} ${p.day} · Cabo time`;const open=currentHour()>=7&&currentHour()<19;$("operatingStatus").textContent=open?"Club operating hours":"Club currently closed"}
-$("daySelect").addEventListener("change",()=>{populateTimes(false);renderAll()});$("hourSelect").addEventListener("change",renderAll);$("nowButton").addEventListener("click",()=>{$("daySelect").value=currentDay();populateTimes(false);const m=[...$("hourSelect").options].find(o=>hourStart(o.value)===currentHour());if(m)$("hourSelect").value=m.value;renderAll()});$("weekEmployee").addEventListener("change",renderWeek);$("weekDay").addEventListener("change",renderWeek);document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>switchTab(b.dataset.tab)));tick();setInterval(tick,15000);fetchData();setInterval(fetchData,REFRESH_MS);
+$("daySelect").addEventListener("change",()=>{boardSelectionLocked=true;populateTimes(false);renderAll()});$("hourSelect").addEventListener("change",()=>{boardSelectionLocked=true;renderAll()});$("nowButton").addEventListener("click",()=>{boardSelectionLocked=false;$("daySelect").value=currentDay();populateTimes(false);const m=[...$("hourSelect").options].find(o=>hourStart(o.value)===currentHour());if(m)$("hourSelect").value=m.value;renderAll()});$("weekEmployee").addEventListener("change",renderWeek);$("weekDay").addEventListener("change",renderWeek);document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>switchTab(b.dataset.tab)));tick();setInterval(tick,15000);fetchData();setInterval(fetchData,REFRESH_MS);
 </script>
 </body>
 </html>
