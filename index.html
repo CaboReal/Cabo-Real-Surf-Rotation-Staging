@@ -482,10 +482,10 @@ header .brand{margin-bottom:8px}
       <div class="panel-heading"><h2>ROTATION FLOW</h2><span class="map-note">Hourly rotation</span></div>
       <div class="rotation-wheel">
         <div class="wheel-node n1"><span>1</span><b>SURF COACH · ZONE 1</b><strong id="flowPusher" class="hidden">—</strong></div>
-        <div class="wheel-node n2"><span>2</span><b>SURF COACH · ZONE 2</b><strong id="flowCatcher" class="hidden">—</strong></div>
-        <div class="wheel-node n3"><span>3</span><b>SURF COACH · ZONE 3</b><strong id="flowTower" class="hidden">—</strong></div>
-        <div class="wheel-node n4"><span>4</span><b>SURF COACH · ZONE 4</b><strong id="flowBoardA" class="hidden">—</strong></div>
-        <div class="wheel-node n5"><span>5</span><b>SURF COACH · ZONE 5</b><strong id="flowBoardB" class="hidden">—</strong></div>
+        <div class="wheel-node n2"><span>2</span><b>SURF COACH · ZONE 5</b><strong id="flowCatcher" class="hidden">—</strong></div>
+        <div class="wheel-node n3"><span>3</span><b>CONTROL TOWER A</b><strong id="flowTower" class="hidden">—</strong></div>
+        <div class="wheel-node n4"><span>4</span><b>BOARD ROOM A</b><strong id="flowBoardA" class="hidden">—</strong></div>
+        <div class="wheel-node n5"><span>5</span><b>BOARD ROOM B</b><strong id="flowBoardB" class="hidden">—</strong></div>
         <div class="wheel-arrow a12">↘</div><div class="wheel-arrow a23">↙</div><div class="wheel-arrow a34">←</div><div class="wheel-arrow a45">↖</div><div class="wheel-arrow a51">↗</div>
       </div>
       <div class="flow-caption">Everyone rotates each hour in this direction.</div>
@@ -750,7 +750,7 @@ const partyCoverageFor=(d,h)=>{
  }));
  if(crew.length!==10)return null;
  const dateMatch=(r)=>normalize(field(r,["Day","Weekday","Day Name"]))===normalize(d)&&hourStart(field(r,["Pool Party Hour","Hour","Time","Time Slot"]))===h;
- const published=sheetRows("Pool Party Coverage").find(dateMatch);
+ const published=parseSheet("Pool Party Coverage").find(dateMatch);
  const publishedNames=published?partyPositionDefs.map(def=>String(field(published,[def.name])||"").trim()):[];
  // Use the published party list as historical context, but calculate today's
  // placement from each person's previous regular position so party work cannot
