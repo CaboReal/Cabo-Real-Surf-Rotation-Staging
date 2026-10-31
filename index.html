@@ -1073,7 +1073,7 @@ function regularPositionValues(row){
  // The rotation export's five slots map to five regular operational posts.
  // Source slot mapping: Zone 1 -> Coach Zone 1; Zone 5 -> Coach Zone 5;
 // Zone 4 -> Tower A; Zone 3 -> Board Room A; Zone 2 -> Board Room B.
- const hasZoneData=[1,2,3,4,5].some(n=>splitNames(p[`Surf Coach Zone ${n}`]).length);
+ const hasZoneData=[1,2,3,4,5].every(n=>splitNames(p[`Surf Coach Zone ${n}`]).length>0);
  if(hasZoneData){
   return [
    p["Surf Coach Zone 1"],
