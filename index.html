@@ -750,9 +750,9 @@ function renderWeek(){
   // Source rotation slots 2–4 are NOT pool positions outside party hours.
   {key:"Surf Coach Zone 1",aliases:["Surf Coach Zone 1","Pool Pusher (Zone 1)","Zone 1"],title:"SURF COACH",subtitle:"Zone 1 · left side",kind:"blue"},
   {key:"Surf Coach Zone 5",aliases:["Surf Coach Zone 5","Pool Catcher (Zone 5)","Zone 5"],title:"SURF COACH",subtitle:"Zone 5 · right side",kind:"blue"},
-  {key:"Control Tower A",aliases:["Control Tower A","Tower A","Control Tower","Surf Coach Zone 2","Zone 2"],title:"CONTROL TOWER",subtitle:"Tower A",kind:"orange"},
+  {key:"Control Tower A",aliases:["Control Tower A","Tower A","Control Tower","Surf Coach Zone 4","Zone 4"],title:"CONTROL TOWER",subtitle:"Tower A",kind:"orange"},
   {key:"Board Room A",aliases:["Board Room A","Surf Coach Zone 3","Zone 3"],title:"BOARD ROOM A",subtitle:"Check in / check out",kind:"green"},
-  {key:"Board Room B",aliases:["Board Room B","Surf Coach Zone 4","Zone 4"],title:"BOARD ROOM B",subtitle:"Check in / check out",kind:"green"}
+  {key:"Board Room B",aliases:["Board Room B","Surf Coach Zone 2","Zone 2"],title:"BOARD ROOM B",subtitle:"Check in / check out",kind:"green"}
  ];
  const sheetRows=sheetName=>parseSheet(sheetName);
  const rowFor=(sheetName,d,h)=>sheetRows(sheetName).find(x=>
@@ -933,15 +933,16 @@ function nextRow(day,time){const rows=allRows.filter(r=>normalize(r.day)===norma
 function regularPositionValues(row){
  const p=row?.positions||{};
  // The rotation export's five slots map to five regular operational posts.
- // Only slots 1 and 5 are surf-coach zones; slots 2–4 staff Tower A and Board A/B.
+ // Source slot mapping: Zone 1 -> Coach Zone 1; Zone 5 -> Coach Zone 5;
+// Zone 4 -> Tower A; Zone 3 -> Board Room A; Zone 2 -> Board Room B.
  const hasZoneData=[1,2,3,4,5].some(n=>splitNames(p[`Surf Coach Zone ${n}`]).length);
  if(hasZoneData){
   return [
    p["Surf Coach Zone 1"],
    p["Surf Coach Zone 5"],
-   p["Surf Coach Zone 2"],
+   p["Surf Coach Zone 4"],
    p["Surf Coach Zone 3"],
-   p["Surf Coach Zone 4"]
+   p["Surf Coach Zone 2"]
   ].map(v=>splitNames(v).join(", "));
  }
  return [
