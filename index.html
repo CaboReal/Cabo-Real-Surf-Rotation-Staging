@@ -746,11 +746,13 @@ function renderWeek(){
  const host=$("weekTable");host.innerHTML="";
  if(!rows.length){host.innerHTML='<div class="empty-state">No scheduled shift found for this employee and filter.</div>';return}
  const roles=[
+  // The five regular-hour rotation slots map to these five operational posts.
+  // Source rotation slots 2–4 are NOT pool positions outside party hours.
   {key:"Surf Coach Zone 1",aliases:["Surf Coach Zone 1","Pool Pusher (Zone 1)","Zone 1"],title:"SURF COACH",subtitle:"Zone 1 · left side",kind:"blue"},
   {key:"Surf Coach Zone 5",aliases:["Surf Coach Zone 5","Pool Catcher (Zone 5)","Zone 5"],title:"SURF COACH",subtitle:"Zone 5 · right side",kind:"blue"},
-  {key:"Surf Coach Zone 2",aliases:["Surf Coach Zone 2","Zone 2"],title:"SURF COACH",subtitle:"Zone 2",kind:"blue"},
-  {key:"Surf Coach Zone 3",aliases:["Surf Coach Zone 3","Zone 3"],title:"SURF COACH",subtitle:"Zone 3",kind:"blue"},
-  {key:"Surf Coach Zone 4",aliases:["Surf Coach Zone 4","Zone 4"],title:"SURF COACH",subtitle:"Zone 4",kind:"blue"}
+  {key:"Control Tower A",aliases:["Control Tower A","Tower A","Control Tower","Surf Coach Zone 2","Zone 2"],title:"CONTROL TOWER",subtitle:"Tower A",kind:"orange"},
+  {key:"Board Room A",aliases:["Board Room A","Surf Coach Zone 3","Zone 3"],title:"BOARD ROOM A",subtitle:"Check in / check out",kind:"green"},
+  {key:"Board Room B",aliases:["Board Room B","Surf Coach Zone 4","Zone 4"],title:"BOARD ROOM B",subtitle:"Check in / check out",kind:"green"}
  ];
  const sheetRows=sheetName=>parseSheet(sheetName);
  const rowFor=(sheetName,d,h)=>sheetRows(sheetName).find(x=>
@@ -930,10 +932,8 @@ function hourLabel(s){return String(s||"").replace(/\s*-\s*/," – ")}
 function nextRow(day,time){const rows=allRows.filter(r=>normalize(r.day)===normalize(day)).sort((a,b)=>hourStart(a.time)-hourStart(b.time));const i=rows.findIndex(r=>r.time===time||hourStart(r.time)===hourStart(time));return i>=0?rows[i+1]||null:null}
 function regularPositionValues(row){
  const p=row?.positions||{};
- // Regular hours have exactly five operational posts. The rotation export
- // stores the five rotating crew slots as Zones 1–5; map those slots onto
- // the regular posts in this order. Zones 2–4 are not displayed as posts
- // outside pool-party hours: their rotating staff fill Tower A, Board A/B.
+ // The rotation export's five slots map to five regular operational posts.
+ // Only slots 1 and 5 are surf-coach zones; slots 2–4 staff Tower A and Board A/B.
  const hasZoneData=[1,2,3,4,5].some(n=>splitNames(p[`Surf Coach Zone ${n}`]).length);
  if(hasZoneData){
   return [
