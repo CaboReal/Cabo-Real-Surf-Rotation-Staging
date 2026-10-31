@@ -113,6 +113,9 @@ main{max-width:1180px;padding:10px 16px 26px}
 .assignment-head b{font-size:clamp(.48rem,.78vw,.7rem)}
 .assignment-head small{font-size:.58rem;line-height:1.05}
 .assignment-visual{height:72px;background:linear-gradient(#d8e9e7,#91c8c5);display:flex;align-items:flex-end;justify-content:center;padding-top:10px}
+.staff-photo{display:block;width:100%;height:100%;object-fit:cover;object-position:center 30%;border-radius:4px 4px 0 0}
+.assignment-visual:has(.staff-photo){padding:0;overflow:hidden;align-items:stretch}
+.assignment-visual:has(.staff-photo) .staff-photo{min-height:0}
 .person-icon{position:relative;display:block;width:32px;height:40px;margin:0 auto}
 .person-icon:before{content:"";position:absolute;top:0;left:10px;width:12px;height:12px;border-radius:50%;background:var(--silhouette,#4d8c78);border:0}
 .person-icon:after{content:"";position:absolute;bottom:0;left:2px;width:28px;height:21px;border-radius:50% 50% 0 0;background:var(--silhouette,#4d8c78);border:0}
@@ -1052,6 +1055,17 @@ function makeAssignmentCard(index,title,subtitle,name,small=false,color=null){
  const colors=["green","blue","orange","purple","pink"],card=document.createElement("article");
  card.className="assignment-card "+(color||colors[index%colors.length]);
  card.innerHTML=`<div class="assignment-head"><span>${index+1}</span><div><b>${title}</b><small>${subtitle}</small></div></div><div class="assignment-visual"><span class="person-icon" aria-hidden="true"></span></div><div class="assignment-name"></div>`;
+ const cleanName=String(name||"").trim();
+ const photoNames=new Set(["Kody","Ana","Diana","Felix","Fernando","Green","Linden","Lucho","Makeni","Marley","Pollo","Pomo","Tlaca","Toni","Wikin"]);
+ const visual=card.querySelector(".assignment-visual");
+ if(photoNames.has(cleanName)){
+  const img=document.createElement("img");
+  img.className="staff-photo";img.alt=cleanName;img.loading="lazy";
+  img.src=`https://raw.githubusercontent.com/CaboReal/Cabo-Real-Surf-Rotation-Staging/main/photos/${encodeURIComponent(cleanName)}.jpg`;
+  img.onerror=()=>{img.remove()};visual.replaceChildren(img);
+ } else if(cleanName==="Bernardo"){
+  visual.replaceChildren();
+ }
  card.querySelector(".assignment-name").textContent=name||"—";return card;
 }
 function renderSchedule(){
