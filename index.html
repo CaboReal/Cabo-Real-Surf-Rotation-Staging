@@ -113,7 +113,7 @@ main{max-width:1180px;padding:10px 16px 26px}
 .assignment-head b{font-size:clamp(.48rem,.78vw,.7rem)}
 .assignment-head small{font-size:.58rem;line-height:1.05}
 .assignment-visual{height:72px;background:linear-gradient(#d8e9e7,#91c8c5);display:flex;align-items:flex-end;justify-content:center;padding-top:10px}
-.staff-photo{display:block;width:100%;height:100%;object-fit:cover;object-position:center 30%;border-radius:4px 4px 0 0}
+.staff-photo{display:block;width:100%;height:100%;object-fit:contain;object-position:center center;border-radius:4px 4px 0 0}
 .assignment-visual:has(.staff-photo){padding:0;overflow:hidden;align-items:stretch}
 .assignment-visual:has(.staff-photo) .staff-photo{min-height:0}
 .person-icon{position:relative;display:block;width:32px;height:40px;margin:0 auto}
@@ -440,6 +440,12 @@ header .brand{margin-bottom:8px}
 .month-shift.tbd{background:#263b42;color:#a8bec4;font-size:.62rem}
 @media(max-width:620px){.team-view-btn{padding:7px 13px;font-size:.68rem}#teamTable.month-view .team-grid{font-size:9px}#teamTable.month-view .team-grid th,#teamTable.month-view .team-grid td{min-width:36px;padding:4px 2px}#teamTable.month-view .team-grid th:first-child,#teamTable.month-view .team-grid td:first-child{min-width:78px;width:78px;padding-left:5px}#teamTable.month-view .month-shift{min-width:27px;padding:4px 2px;font-size:9px}}
 
+
+/* Staff portrait correction: show the full face and retain the silhouette for Bernardo. */
+.current-panel .assignment-visual,.next-panel .assignment-visual,.next-cards .assignment-visual{height:76px!important;min-height:76px!important;padding:0!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;background:linear-gradient(#d8e9e7,#91c8c5)!important}
+.current-panel .staff-photo,.next-panel .staff-photo,.next-cards .staff-photo{width:100%!important;height:100%!important;object-fit:contain!important;object-position:center center!important}
+.current-panel .person-icon,.next-panel .person-icon,.next-cards .person-icon{transform:none!important}
+@media(max-width:620px){.current-panel .assignment-visual,.next-panel .assignment-visual,.next-cards .assignment-visual{height:76px!important;min-height:76px!important}}
 </style>
 </head>
 <body>
@@ -1063,8 +1069,6 @@ function makeAssignmentCard(index,title,subtitle,name,small=false,color=null){
   img.className="staff-photo";img.alt=cleanName;img.loading="lazy";
   img.src=`https://raw.githubusercontent.com/CaboReal/Cabo-Real-Surf-Rotation-Staging/main/photos/${encodeURIComponent(cleanName)}.jpg`;
   img.onerror=()=>{img.remove()};visual.replaceChildren(img);
- } else if(cleanName==="Bernardo"){
-  visual.replaceChildren();
  }
  card.querySelector(".assignment-name").textContent=name||"—";return card;
 }
