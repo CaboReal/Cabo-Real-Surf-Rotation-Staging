@@ -678,10 +678,22 @@ function getAllAssignments(){
   if(!grouped.has(key))grouped.set(key,{...r,sourceRows:[r]});
   else {
    const g=grouped.get(key);g.sourceRows.push(r);
-   Object.keys(g.positions).forEach(k=>{
-    const vals=[...splitNames(g.positions[k]),...splitNames(r.positions[k])];
-    g.positions[k]=[...new Set(vals)].join(", ");
-   });
+   const h=hourStart(r.time);
+   // Lunch coverage has one working crew: PM works at noon while AM eats;
+   // AM works at 2 PM while PM eats. Never merge both crews into one post.
+   const preferredLunchSource=h===12?"PM":h===14?"AM":null;
+   if(preferredLunchSource){
+    if(r.source===preferredLunchSource){
+     const sources=g.sourceRows;
+     Object.assign(g,r);
+     g.sourceRows=sources;
+    }
+   }else{
+    Object.keys(g.positions).forEach(k=>{
+     const vals=[...splitNames(g.positions[k]),...splitNames(r.positions[k])];
+     g.positions[k]=[...new Set(vals)].join(", ");
+    });
+   }
    // Prefer a readable canonical time label from the first source row.
   }
  });
@@ -840,8 +852,15 @@ function renderBoard(){
  const extra=[];
  if(party&&coverage){extra.push(coverage.tower[1],coverage.board[2]);}
  fill("extra",extra);
- const lunchRow=parseSheet("Lunch Coverage").find(r=>hourStart(field(r,["Hour","Time"]))===h);
- const breaks=lunchRow?splitNames(field(lunchRow,["On Break","OnBreak","Break"])):[];
+ const lunchRow=parseSheet("Lunch Coverage").find(r=>
+  normalize(field(r,["Day","Weekday","Day Name"]))===normalize(day)&&
+  hourStart(field(r,["Hour","Time"]))===h
+ );
+ const breakShift=h===12?"AM":h===14?"PM":null;
+ const scheduledBreakCrew=breakShift?weeklyScheduleRows()
+  .filter(r=>normalize(r.day)===normalize(day)&&normalize(r.shift)===normalize(breakShift))
+  .map(r=>r.employee):[];
+ const breaks=lunchRow?splitNames(field(lunchRow,["On Break","OnBreak","Break"])):scheduledBreakCrew;
  fill("breakRoom",breaks);
  const visibleBreak=$("breakRoomVisible");if(visibleBreak)visibleBreak.innerHTML=$("breakRoom").innerHTML;
  const breakPanel=$("breakRoomPanel");if(breakPanel){const showBreak=[12,14].includes(h);breakPanel.classList.toggle("hidden",!showBreak);$("breakRoomLabel").textContent=h===12?"AM Crew Lunch":h===14?"PM Crew Lunch":"";}
