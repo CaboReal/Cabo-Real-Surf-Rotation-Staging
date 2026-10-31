@@ -1270,8 +1270,11 @@ async function fetchData(){
    const selectedDay=selectedDate?new Intl.DateTimeFormat("en-US",{weekday:"long",timeZone:"UTC"}).format(new Date(selectedDate+"T12:00:00Z")):"";
    const rowsOf=v=>{if(!v)return[];if(Array.isArray(v.values))return v.values;if(Array.isArray(v.rows))return v.rows;return []};
    ["AM Hourly Rotation","PM Hourly Rotation","Pool Party Coverage"].forEach(k=>{
-    const remote=rowsOf(sheets[k]),fresh=rowsOf(exported[k]);
-    merged[k]={values:[...remote.filter(r=>normalize(field(r,["Day","Weekday","Day Name"]))!==normalize(selectedDay)),...fresh]};
+    const remoteSheet=sheets[k]||{};
+    const remote=rowsOf(remoteSheet),fresh=rowsOf(exported[k]);
+    // Preserve the source headers when remote rows are arrays. Without these,
+    // parseSheet cannot map Day / Hour / employee columns for the other weekdays.
+    merged[k]={headers:asArray(remoteSheet.headers),values:[...remote.filter(r=>normalize(field(r,["Day","Weekday","Day Name"]))!==normalize(selectedDay)),...fresh]};
    });
    if(exported["Lunch Coverage"])merged["Lunch Coverage"]=exported["Lunch Coverage"];
    sheetMap=merged;
