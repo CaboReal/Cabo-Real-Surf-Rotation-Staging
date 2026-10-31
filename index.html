@@ -642,6 +642,46 @@ function getAllAssignments(){
   }
  });
  const result=[...grouped.values()].sort((a,b)=>DAYS.indexOf(a.day)-DAYS.indexOf(b.day)||hourStart(a.time)-hourStart(b.time));
+ // Recalculate exported regular rotations from each shift's first regular row.
+ // Pool-party hours (11 AM and 1 PM) and lunch (12 PM / 2 PM) are pauses:
+ // none of them advances the five-position regular rotation.
+ if(echoData&&echoData.selectedDate){
+  ["AM","PM"].forEach(shift=>{
+   const sourceName=shift.toLowerCase();
+   const shiftRows=result.filter(r=>(r.sourceRows||[r]).some(x=>x.source===sourceName));
+   const seedRow=shiftRows.find(r=>{
+    const h=hourStart(r.time);
+    return (shift==="AM"?h===7:h===12) &&
+      (r.sourceRows||[r]).some(x=>x.source===sourceName&&normalize(field(x.raw,["Type"]))==="rotation");
+   });
+   if(!seedRow)return;
+   const seed=regularPositionValues(seedRow);
+   if(seed.filter(Boolean).length!==5)return;
+   shiftRows.forEach(r=>{
+    const h=hourStart(r.time);
+    const source=(r.sourceRows||[r]).find(x=>x.source===sourceName);
+    if(!source||normalize(field(source.raw,["Type"]))!=="rotation")return;
+    let steps=0;
+    const start=shift==="AM"?7:11;
+    for(let t=start;t<h;t++){
+     if([11,12,13,14].includes(t))continue;
+     steps++;
+    }
+    const rotated=seed.map((_,i)=>seed[(i-steps+5)%5]);
+    r.positions["Surf Coach Zone 1"]=rotated[0];
+    r.positions["Surf Coach Zone 5"]=rotated[1];
+    r.positions["Surf Coach Zone 4"]=rotated[2];
+    r.positions["Surf Coach Zone 3"]=rotated[3];
+    r.positions["Surf Coach Zone 2"]=rotated[4];
+    r.positions["Pool Pusher (Zone 1)"]=rotated[0];
+    r.positions["Pool Catcher (Zone 5)"]=rotated[1];
+    r.positions["Control Tower A"]=rotated[2];
+    r.positions["Control Tower"]=rotated[2];
+    r.positions["Board Room A"]=rotated[3];
+    r.positions["Board Room B"]=rotated[4];
+   });
+  });
+ }
  // Reconcile legacy hourly assignments against the Weekly Schedule without deleting
  // whole positions. Keep valid assigned names, then fill vacancies from staff actually
  // scheduled for that day and shift. This avoids the previous all-blank result when a
@@ -695,23 +735,79 @@ function renderPills(){const host=$("employeePills");host.innerHTML="";employees
 function staffTag(name){const b=document.createElement("button");b.className="staff-tag"+(selectedEmployee===name?" highlight":"");b.textContent=name;b.onclick=()=>{selectedEmployee=selectedEmployee===name?"":name;renderAll()};return b}
 function fill(id,values){const el=$(id);el.innerHTML="";const names=[...new Set(values.flatMap(splitNames))];if(!names.length){el.innerHTML='<span class="empty">No assignment recorded</span>';return}names.forEach(n=>el.appendChild(staffTag(n)))}
 function setMap(id,names){const el=$(id),vals=[...new Set(names.flatMap(splitNames))];el.textContent=vals.length?vals.join(" · "):"—";el.classList.toggle("highlight",!!selectedEmployee&&vals.includes(selectedEmployee));const flowIds={mapPusher:"flowPusher",mapCatcher:"flowCatcher",mapTower:"flowTower",mapBoardA:"flowBoardA",mapBoardB:"flowBoardB"};if(flowIds[id])$(flowIds[id]).textContent=vals.length?vals.join(" · "):"—";if(flowIds[id])$(flowIds[id]).parentElement.classList.toggle("active",!!selectedEmployee&&vals.includes(selectedEmployee))}
+const partyPositionDefs=[
+ {name:"Surf Coach Zone 1",group:"pool"},{name:"Surf Coach Zone 5",group:"pool"},
+ {name:"Control Tower A",group:"tower"},{name:"Board Room A",group:"board"},{name:"Board Room B",group:"board"},
+ {name:"Surf Coach Zone 2",group:"pool"},{name:"Surf Coach Zone 3",group:"pool"},{name:"Surf Coach Zone 4",group:"pool"},
+ {name:"Control Tower B",group:"tower"},{name:"Board Room C",group:"board"}
+];
+const partyCoverageFor=(d,h)=>{
+ // Pool-party duties are assigned separately from the five-position regular rotation.
+ // The crew is taken from the published AM + PM schedule, never from unscheduled staff.
+ const shifts=["AM","PM"],crew=[];
+ shifts.forEach(sh=>weeklyScheduleRows().filter(x=>normalize(x.day)===normalize(d)&&normalize(x.shift)===normalize(sh)).forEach(x=>{
+  if(x.employee&&!crew.some(n=>normalize(n)===normalize(x.employee)))crew.push(x.employee);
+ }));
+ if(crew.length!==10)return null;
+ const dateMatch=(r)=>normalize(field(r,["Day","Weekday","Day Name"]))===normalize(d)&&hourStart(field(r,["Pool Party Hour","Hour","Time","Time Slot"]))===h;
+ const published=sheetRows("Pool Party Coverage").find(dateMatch);
+ const publishedNames=published?partyPositionDefs.map(def=>String(field(published,[def.name])||"").trim()):[];
+ // Use the published party list as historical context, but calculate today's
+ // placement from each person's previous regular position so party work cannot
+ // advance or reset the five-position rotation.
+ const dayRows=allRows.filter(r=>normalize(r.day)===normalize(d));
+ const priorRole=new Map();
+ crew.forEach(name=>{
+  const sh=weeklyScheduleRows().find(x=>normalize(x.day)===normalize(d)&&normalize(x.employee)===normalize(name))?.shift;
+  const source=String(sh||"").toLowerCase()==="am"?"am":"pm";
+  const preferredHour=source==="am"?10:15;
+  const candidate=dayRows.find(r=>hourStart(r.time)===preferredHour);
+  const src=(candidate?.sourceRows||[]).find(x=>x.source===source);
+  const vals=regularPositionValues(src||candidate);
+  const ix=vals.findIndex(v=>splitNames(v).some(n=>normalize(n)===normalize(name)));
+  priorRole.set(normalize(name),ix<0?null:ix);
+ });
+ const dateNum=Number(String((echoData&&echoData.selectedDate)||"").slice(-2))||0;
+ const costs=crew.map((name,ei)=>partyPositionDefs.map((def,pi)=>{
+  const ix=priorRole.get(normalize(name));
+  const previousGroup=ix===0||ix===1?"pool":ix===2?"tower":ix===3||ix===4?"board":null;
+  let cost=previousGroup===def.group?100:0; // Prefer a different responsibility type.
+  if(publishedNames.length===10&&normalize(publishedNames[pi])===normalize(name))cost-=8;
+  // Small deterministic tie-breaker rotates assignments across dates and the two sessions.
+  cost+=((ei*3+pi*5+dateNum+(h===13?7:0))%11)/100;
+  return cost;
+ }));
+ // Minimum-cost one-to-one assignment (10 staff to 10 positions).
+ const memo=new Map();
+ const solve=(i,mask)=>{
+  if(i===crew.length)return {cost:0,slots:[]};
+  const key=i+"|"+mask;if(memo.has(key))return memo.get(key);
+  let best={cost:Infinity,slots:[]};
+  for(let pi=0;pi<10;pi++)if(!(mask&(1<<pi))){
+   const tail=solve(i+1,mask|(1<<pi)),total=costs[i][pi]+tail.cost;
+   if(total<best.cost)best={cost:total,slots:[pi,...tail.slots]};
+  }
+  memo.set(key,best);return best;
+ };
+ const slots=solve(0,0).slots,assigned=Array(10).fill("");
+ slots.forEach((pi,ei)=>assigned[pi]=crew[ei]);
+ return {pool:[assigned[0],assigned[5],assigned[6],assigned[7],assigned[1]],tower:[assigned[2],assigned[8]],board:[assigned[3],assigned[4],assigned[9]],positions:assigned};
+};
+
 function renderBoard(){
  const day=$("daySelect").value,time=$("hourSelect").value,row=findRow(day,time),h=hourStart(time),p=row?.positions||{};
  const poolImage=$("poolAerialImage");
  if(poolImage){const partyImage=[11,13].includes(h);poolImage.src=partyImage?"pool-party-aerial.png":"pool-aerial.png";poolImage.alt=partyImage?"Pool-party coverage with five surf coach zones, two control tower positions and three board room positions":"Five surf coach zones";}
  const party=[11,13].includes(h);
- const coverage=party?parseSheet("Pool Party Coverage").find(r=>normalize(field(r,["Day","Weekday","Day Name"]))===normalize(day)&&hourStart(field(r,["Pool Party Hour","Hour","Time","Time Slot"]))===h):null;
- const value=(key)=>coverage?field(coverage,[key]):"";
+ const coverage=party?partyCoverageFor(day,h):null;
  const regular=regularPositionValues(row);
- fill("pusher",[party?value("Surf Coach Zone 1"):regular[0]]);
- fill("catcher",[party?value("Surf Coach Zone 5"):regular[1]]);
- fill("tower",[party?value("Control Tower A"):regular[2]]);
- fill("boardA",[party?value("Board Room A"):regular[3]]);
- fill("boardB",[party?value("Board Room B"):regular[4]]);
+ fill("pusher",[party?coverage?.pool[0]:regular[0]]);
+ fill("catcher",[party?coverage?.pool[4]:regular[1]]);
+ fill("tower",[party?coverage?.tower[0]:regular[2]]);
+ fill("boardA",[party?coverage?.board[0]:regular[3]]);
+ fill("boardB",[party?coverage?.board[1]:regular[4]]);
  const extra=[];
- if(party&&coverage){
-  ["Control Tower B","Board Room C"].forEach(k=>{const n=value(k);if(n)extra.push(n)});
- }
+ if(party&&coverage){extra.push(coverage.tower[1],coverage.board[2]);}
  fill("extra",extra);
  const lunchRow=parseSheet("Lunch Coverage").find(r=>hourStart(field(r,["Hour","Time"]))===h);
  const breaks=lunchRow?splitNames(field(lunchRow,["On Break","OnBreak","Break"])):[];
@@ -768,15 +864,14 @@ function renderWeek(){
   normalize(field(x,["Day","Weekday","Day Name"]))===normalize(d)&&
   hourStart(field(x,["Pool Party Hour","Hour","Time","Time Slot"]))===h
  );
+
  const positionFor=(d,shift,h,employee)=>{
   // Pool-party coverage is a separate 10-person allocation and must take priority
   // over the standard five-person rotation.
   if(h===11||h===13){
-   const c=poolPartyFor(d,h);
+   const c=partyCoverageFor(d,h);
    if(c){
-    const pool=splitNames(field(c,["Pool (5)","Pool","Pool Staff"]));
-    const tower=splitNames(field(c,["Tower (2)","Tower","Tower Staff"]));
-    const board=splitNames(field(c,["Board Room (3)","Board Room","Board Room Staff"]));
+    const pool=c.pool, tower=c.tower, board=c.board;
     const pi=pool.findIndex(n=>normalize(n)===normalize(employee));
     if(pi>=0)return {title:"SURF COACH",subtitle:`Zone ${pi+1}${pi===0?" · left side":pi===4?" · right side":""}`,kind:"blue"};
     const ti=tower.findIndex(n=>normalize(n)===normalize(employee));
@@ -784,35 +879,34 @@ function renderWeek(){
     const bi=board.findIndex(n=>normalize(n)===normalize(employee));
     if(bi>=0)return {title:`BOARD ROOM ${String.fromCharCode(65+bi)}`,subtitle:"Check in / check out",kind:"green"};
    }
-   // Pool-party positions exist only during the designated party hours.
-   // Anyone not listed in that hour's 10-person coverage has no party assignment.
-   return null;
+   // Party hours are separate from the regular rotation. If the date has no
+   // published 10-person party roster, show a clear data warning, not a fake post.
+   return {title:"POOL PARTY COVERAGE",subtitle:"Party assignments not published for this date",kind:"missing"};
   }
-  // First honor an explicit assignment in the hourly Google-Sheets-backed row.
-  // If a row/cell is blank, do not show "ASSIGNMENT MISSING": derive the position
-  // from the same Weekly Schedule used by Whole Team and My Week.
-  const sourceSheet=(h<11||h===14)?"AM Hourly Rotation":"PM Hourly Rotation";
-  const hourly=rowFor(sourceSheet,d,h);
-  if(hourly){
-   for(const role of roles){
-    const assigned=splitNames(field(hourly,role.aliases));
-    if(assigned.some(n=>normalize(n)===normalize(employee))){
-     return {title:role.title,subtitle:role.subtitle,kind:role.kind};
-    }
+  // Use the same normalized, corrected rotation that feeds the Live Board.
+  // This prevents My Week from reading the raw source-zone labels and showing
+  // Zone 2–4 as surf-coach posts during ordinary hours.
+  const normalizedRow=(allRows||[]).find(x=>normalize(x.day)===normalize(d)&&hourStart(x.time)===h);
+  if(normalizedRow){
+   const assigned=regularPositionValues(normalizedRow);
+   const roleIndex=assigned.findIndex(v=>splitNames(v).some(n=>normalize(n)===normalize(employee)));
+   if(roleIndex>=0){
+    const role=roles[roleIndex];
+    return {title:role.title,subtitle:role.subtitle,kind:role.kind};
    }
   }
   const crew=weeklyCrewFor(d,shift);
   const employeeIndex=crew.findIndex(n=>normalize(n)===normalize(employee));
   if(employeeIndex>=0){
-   // A standard shift has five positions. Rotate through working hours only; lunch pauses progression. Pool-party hours are working steps. This fallback is used only where the hourly sheet has no assignment.
+   // A standard shift has five positions. Rotate through ordinary hours only;
+   // lunch and pool-party hours pause progression.
    const shiftStart=shift==="AM"?7:11;
-   // Lunch is a pause, not a rotation slot. Count only actual working hours
-   // from the start of this crew's shift. Pool-party hours (11 AM and 1 PM)
-   // are working hours and therefore advance the rotation normally.
+   // Lunch and pool-party sessions are both pauses in the regular five-position
+   // rotation. Only ordinary operating hours advance the crew's rotation.
    let workingSteps=0;
    for(let step=shiftStart;step<h;step++){
-    const isThisCrewLunch=(shift==="AM"&&step===12)||(shift==="PM"&&step===14);
-    if(!isThisCrewLunch)workingSteps++;
+    if([11,12,13,14].includes(step))continue;
+    workingSteps++;
    }
    // Rotate the starting point across the week so staff do not repeatedly land
    // in the same role each day. Lunch does not affect this day-to-day offset.
@@ -973,11 +1067,9 @@ function renderSchedule(){
   const tdTime=document.createElement("td"),b=document.createElement("button");b.textContent=shortHour(r.time);b.onclick=()=>{$("hourSelect").value=r.time;renderAll()};tdTime.appendChild(b);tr.appendChild(tdTime);
   const p=r.positions||{},vals=Array(10).fill("");
   if(partyHour){
-   const coverage=parseSheet("Pool Party Coverage").find(x=>normalize(field(x,["Day","Weekday","Day Name"]))===normalize(day)&&hourStart(field(x,["Pool Party Hour","Hour","Time","Time Slot"]))===start);
+   const coverage=partyCoverageFor(day,start);
    if(coverage){
-    const pool=splitNames(field(coverage,["Pool (5)","Pool","Pool Staff"]));
-    const tower=splitNames(field(coverage,["Tower (2)","Tower","Tower Staff"]));
-    const board=splitNames(field(coverage,["Board Room (3)","Board Room","Board Room Staff"]));
+    const pool=coverage.pool,tower=coverage.tower,board=coverage.board;
     [pool[0],pool[4],tower[0],board[0],board[1],pool[1],pool[2],pool[3],tower[1],board[2]].forEach((n,i)=>vals[i]=n||"");
    } else {
     const sources=(r.sourceRows||[r]).filter(x=>x&&x.positions);
@@ -1022,11 +1114,9 @@ function cardAssignments(row,day,time){
   {title:"BOARD ROOM C",subtitle:"",color:"green"}
  ];
  if(special){
-  const coverage=parseSheet("Pool Party Coverage").find(r=>normalize(field(r,["Day","Weekday","Day Name"]))===normalize(day)&&hourStart(field(r,["Pool Party Hour","Hour","Time","Time Slot"]))===start);
+  const coverage=partyCoverageFor(day,start);
   if(!coverage)return defs.map((d,i)=>({...d,name:"—",number:i+1}));
-  const pool=splitNames(field(coverage,["Pool (5)","Pool","Pool Staff"]));
-  const tower=splitNames(field(coverage,["Tower (2)","Tower","Tower Staff"]));
-  const board=splitNames(field(coverage,["Board Room (3)","Board Room","Board Room Staff"]));
+  const pool=coverage.pool,tower=coverage.tower,board=coverage.board;
   const values=[pool[0],pool[4],tower[0],board[0],board[1],pool[1],pool[2],pool[3],tower[1],board[2]];
   return defs.map((d,i)=>({...d,name:values[i]||"—",number:i+1}));
  }
