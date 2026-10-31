@@ -666,89 +666,59 @@ function getAllAssignments(){
   .filter(n=>["am hourly rotation","pm hourly rotation"].includes(normalize(n)))
   .flatMap(n=>parseSheet(n).map(r=>rowToAssignment(r,normalize(n).startsWith("am")?"AM":"PM")))
   .filter(r=>r.day&&r.time);
- // Enforce the Weekly Schedule day-off status before any liveboard view uses assignments.
- raw.forEach(r=>{
-  const isExportedDate=!!(echoData&&r.raw&&String(r.raw.Date||"")===String(echoData.selectedDate||""));
-  if(!isExportedDate)Object.keys(r.positions||{}).forEach(k=>{r.positions[k]=scheduledNames(r.day,r.positions[k]).join(", ")});
- });
- // AM and PM source sheets can both contain a row for an overlap hour.
- // Keep one selectable row per day/hour and retain all source rows for party coverage.
  const grouped=new Map();
  raw.forEach(r=>{
-  const key=normalize(r.day)+"|"+hourStart(r.time);
-  if(!grouped.has(key))grouped.set(key,{...r,sourceRows:[r]});
-  else {
-   const g=grouped.get(key);g.sourceRows.push(r);
-   const h=hourStart(r.time);
-   // Lunch coverage has one working crew: PM works at noon while AM eats;
-   // AM works at 2 PM while PM eats. Never merge both crews into one post.
-   const preferredLunchSource=h===12?"PM":h===14?"AM":null;
-   if(preferredLunchSource){
-    if(r.source===preferredLunchSource){
-     const sources=g.sourceRows;
-     Object.assign(g,r);
-     g.sourceRows=sources;
-    }
-   }else{
-    Object.keys(g.positions).forEach(k=>{
-     const vals=[...splitNames(g.positions[k]),...splitNames(r.positions[k])];
-     g.positions[k]=[...new Set(vals)].join(", ");
-    });
+  const h=hourStart(r.time),key=normalize(r.day)+"|"+h;
+  if(!grouped.has(key)){grouped.set(key,{...r,sourceRows:[r]});return;}
+  const g=grouped.get(key);g.sourceRows.push(r);
+  // At lunch, keep only the crew that is working in the five core positions.
+  const preferred=h===12?"PM":h===14?"AM":null;
+  if(preferred){
+   if(r.source===preferred){
+    const sources=g.sourceRows;Object.assign(g,r);g.sourceRows=sources;
    }
-   // Prefer a readable canonical time label from the first source row.
+  }else{
+   Object.keys(g.positions).forEach(k=>{
+    const vals=[...splitNames(g.positions[k]),...splitNames(r.positions[k])];
+    g.positions[k]=[...new Set(vals)].join(", ");
+   });
   }
  });
  const result=[...grouped.values()].sort((a,b)=>DAYS.indexOf(a.day)-DAYS.indexOf(b.day)||hourStart(a.time)-hourStart(b.time));
- // Rebuild every regular-hour rotation from that weekday's own shift seed.
- // AM starts at 7 AM; PM's first regular hour is 3 PM because 11 AM/1 PM
- // are pool-party coverage and 12 PM/2 PM are lunch. None advances rotation.
- const seedFor=(day,source,startHour)=>{
-  const seedRow=raw.find(x=>normalize(x.day)===normalize(day)&&x.source===source&&hourStart(x.time)===startHour);
-  let seed=seedRow?[
-   seedRow.positions["Pool Pusher (Zone 1)"],
-   seedRow.positions["Pool Catcher (Zone 5)"],
-   seedRow.positions["Control Tower"],
-   seedRow.positions["Board Room A"],
-   seedRow.positions["Board Room B"]
+ const crewFor=(day,shift)=>weeklyScheduleRows()
+  .filter(x=>normalize(x.day)===normalize(day)&&normalize(x.shift)===normalize(shift))
+  .map(x=>canonicalStaffName(x.employee))
+  .filter((v,i,a)=>v&&a.findIndex(n=>normalize(n)===normalize(v))===i);
+ const seedFor=(day,shift)=>{
+  const source=shift.toLowerCase(),seedHour=shift==="AM"?7:15;
+  const row=raw.find(x=>normalize(x.day)===normalize(day)&&x.source===source&&hourStart(x.time)===seedHour);
+  let seed=row?[
+   row.positions["Pool Pusher (Zone 1)"],row.positions["Pool Catcher (Zone 5)"],
+   row.positions["Control Tower"],row.positions["Board Room A"],row.positions["Board Room B"]
   ].map(v=>splitNames(v)[0]||""):[];
-  // If a live sheet seed is malformed, use the five people actually rostered
-  // for that shift, in Weekly Schedule order, rather than propagate duplicates.
-  if(seed.length!==5||seed.some(v=>!v)||new Set(seed.map(normalize)).size!==5){
-   const shift=source.toUpperCase();
-   seed=weeklyScheduleRows()
-    .filter(x=>normalize(x.day)===normalize(day)&&normalize(x.shift)===normalize(shift))
-    .map(x=>canonicalStaffName(x.employee))
-    .filter((v,i,a)=>v&&a.findIndex(n=>normalize(n)===normalize(v))===i)
-    .slice(0,5);
-  }
+  const crew=crewFor(day,shift);
+  if(seed.length!==5||seed.some(v=>!v)||new Set(seed.map(normalize)).size!==5||crew.length!==5)seed=crew;
   return seed.length===5&&new Set(seed.map(normalize)).size===5?seed:null;
  };
  const seeds=new Map();
- DAYS.forEach(day=>{
-  seeds.set(normalize(day)+"|am",seedFor(day,"am",7));
-  seeds.set(normalize(day)+"|pm",seedFor(day,"pm",15));
- });
+ DAYS.forEach(day=>{seeds.set(normalize(day)+"|AM",seedFor(day,"AM"));seeds.set(normalize(day)+"|PM",seedFor(day,"PM"));});
  result.forEach(r=>{
   const h=hourStart(r.time);
-  if([11,12,13,14].includes(h))return; // party and lunch hours are pauses
-  const source=h>=7&&h<=10?"am":h>=15&&h<=18?"pm":null;
-  if(!source)return;
-  const seed=seeds.get(normalize(r.day)+"|"+source);
-  if(!seed)return;
-  const startHour=source==="am"?7:15;
-  const steps=h-startHour;
+  let shift=null,steps=0;
+  if([7,8,9,10,11,14].includes(h)){
+   shift="AM";steps=h<=11?h-7:5; // 12 PM lunch and 1 PM party pause; 2 PM is AM's final turn.
+  }else if([12,13,15,16,17,18].includes(h)){
+   shift="PM";steps=h===12?0:h===13?1:h-13; // 2 PM lunch pauses the PM rotation.
+  }
+  if(!shift)return;
+  const seed=seeds.get(normalize(r.day)+"|"+shift);if(!seed)return;
   const rotated=seed.map((_,i)=>seed[(i-steps+5)%5]);
-  // The same five unique people rotate through the five regular posts.
   r.positions["Pool Pusher (Zone 1)"]=rotated[0];
   r.positions["Pool Catcher (Zone 5)"]=rotated[1];
-  r.positions["Control Tower"]=rotated[2];
-  r.positions["Control Tower A"]=rotated[2];
-  r.positions["Board Room A"]=rotated[3];
-  r.positions["Board Room B"]=rotated[4];
-  r.positions["Surf Coach Zone 1"]=rotated[0];
-  r.positions["Surf Coach Zone 5"]=rotated[1];
-  r.positions["Surf Coach Zone 4"]=rotated[2];
-  r.positions["Surf Coach Zone 3"]=rotated[3];
+  r.positions["Control Tower"]=rotated[2];r.positions["Control Tower A"]=rotated[2];
+  r.positions["Board Room A"]=rotated[3];r.positions["Board Room B"]=rotated[4];
+  r.positions["Surf Coach Zone 1"]=rotated[0];r.positions["Surf Coach Zone 5"]=rotated[1];
+  r.positions["Surf Coach Zone 4"]=rotated[2];r.positions["Surf Coach Zone 3"]=rotated[3];
   r.positions["Surf Coach Zone 2"]=rotated[4];
  });
  return result;
@@ -785,57 +755,24 @@ const partyPositionDefs=[
  {name:"Surf Coach Zone 2",group:"pool"},{name:"Surf Coach Zone 3",group:"pool"},{name:"Surf Coach Zone 4",group:"pool"},
  {name:"Control Tower B",group:"tower"},{name:"Board Room C",group:"board"}
 ];
-const partyCoverageFor=(d,h)=>{
- // Pool-party duties are assigned separately from the five-position regular rotation.
- // The crew is taken from the published AM + PM schedule, never from unscheduled staff.
- const shifts=["AM","PM"],crew=[];
- shifts.forEach(sh=>weeklyScheduleRows().filter(x=>normalize(x.day)===normalize(d)&&normalize(x.shift)===normalize(sh)).forEach(x=>{
-  if(x.employee&&!crew.some(n=>normalize(n)===normalize(x.employee)))crew.push(x.employee);
- }));
- if(crew.length!==10)return null;
- const dateMatch=(r)=>normalize(field(r,["Day","Weekday","Day Name"]))===normalize(d)&&hourStart(field(r,["Pool Party Hour","Hour","Time","Time Slot"]))===h;
- const published=parseSheet("Pool Party Coverage").find(dateMatch);
- const publishedNames=published?partyPositionDefs.map(def=>String(field(published,[def.name])||"").trim()):[];
- // Use the published party list as historical context, but calculate today's
- // placement from each person's previous regular position so party work cannot
- // advance or reset the five-position rotation.
- const dayRows=allRows.filter(r=>normalize(r.day)===normalize(d));
- const priorRole=new Map();
- crew.forEach(name=>{
-  const sh=weeklyScheduleRows().find(x=>normalize(x.day)===normalize(d)&&normalize(x.employee)===normalize(name))?.shift;
-  const source=String(sh||"").toLowerCase()==="am"?"am":"pm";
-  const preferredHour=source==="am"?10:15;
-  const candidate=dayRows.find(r=>hourStart(r.time)===preferredHour);
-  const src=(candidate?.sourceRows||[]).find(x=>x.source===source);
-  const vals=regularPositionValues(src||candidate);
-  const ix=vals.findIndex(v=>splitNames(v).some(n=>normalize(n)===normalize(name)));
-  priorRole.set(normalize(name),ix<0?null:ix);
- });
- const dateNum=Number(String((echoData&&echoData.selectedDate)||"").slice(-2))||0;
- const costs=crew.map((name,ei)=>partyPositionDefs.map((def,pi)=>{
-  const ix=priorRole.get(normalize(name));
-  const previousGroup=ix===0||ix===1?"pool":ix===2?"tower":ix===3||ix===4?"board":null;
-  let cost=previousGroup===def.group?100:0; // Prefer a different responsibility type.
-  if(publishedNames.length===10&&normalize(publishedNames[pi])===normalize(name))cost-=8;
-  // Small deterministic tie-breaker rotates assignments across dates and the two sessions.
-  cost+=((ei*3+pi*5+dateNum+(h===13?7:0))%11)/100;
-  return cost;
- }));
- // Minimum-cost one-to-one assignment (10 staff to 10 positions).
- const memo=new Map();
- const solve=(i,mask)=>{
-  if(i===crew.length)return {cost:0,slots:[]};
-  const key=i+"|"+mask;if(memo.has(key))return memo.get(key);
-  let best={cost:Infinity,slots:[]};
-  for(let pi=0;pi<10;pi++)if(!(mask&(1<<pi))){
-   const tail=solve(i+1,mask|(1<<pi)),total=costs[i][pi]+tail.cost;
-   if(total<best.cost)best={cost:total,slots:[pi,...tail.slots]};
-  }
-  memo.set(key,best);return best;
- };
- const slots=solve(0,0).slots,assigned=Array(10).fill("");
- slots.forEach((pi,ei)=>assigned[pi]=crew[ei]);
- return {pool:[assigned[0],assigned[5],assigned[6],assigned[7],assigned[1]],tower:[assigned[2],assigned[8]],board:[assigned[3],assigned[4],assigned[9]],positions:assigned};
+const partyCoverageFor=(day,h)=>{
+ // 11 AM: AM crew keeps the five core posts; PM crew covers the five extra posts.
+ // 1 PM: PM crew keeps the five core posts; AM crew covers the five extra posts.
+ const coreShift=h===11?"AM":"PM",extraShift=h===11?"PM":"AM";
+ const row=allRows.find(r=>normalize(r.day)===normalize(day)&&hourStart(r.time)===h);
+ if(!row)return null;
+ const core=regularPositionValues(row).map(v=>splitNames(v)[0]||"");
+ const extraCrew=weeklyScheduleRows()
+  .filter(r=>normalize(r.day)===normalize(day)&&normalize(r.shift)===normalize(extraShift))
+  .map(r=>canonicalStaffName(r.employee))
+  .filter((v,i,a)=>v&&a.findIndex(n=>normalize(n)===normalize(v))===i);
+ if(core.length!==5||core.some(v=>!v)||new Set(core.map(normalize)).size!==5||extraCrew.length!==5)return null;
+ // Extra positions in order: Surf Coach Zones 2, 3, 4, Tower B, Board Room C.
+ const extras=extraCrew;
+ const pool=[core[0],extras[0],extras[1],extras[2],core[1]];
+ const tower=[core[2],extras[3]];
+ const board=[core[3],core[4],extras[4]];
+ return {pool,tower,board,positions:[pool[0],pool[4],tower[0],board[0],board[1],pool[1],pool[2],pool[3],tower[1],board[2]],coreShift,extraShift};
 };
 
 function renderBoard(){
