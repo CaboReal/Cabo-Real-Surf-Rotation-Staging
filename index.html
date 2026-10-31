@@ -446,6 +446,41 @@ header .brand{margin-bottom:8px}
 .current-panel .staff-photo,.next-panel .staff-photo,.next-cards .staff-photo{width:100%!important;height:100%!important;object-fit:contain!important;object-position:center center!important}
 .current-panel .person-icon,.next-panel .person-icon,.next-cards .person-icon{transform:none!important}
 @media(max-width:620px){.current-panel .assignment-visual,.next-panel .assignment-visual,.next-cards .assignment-visual{height:76px!important;min-height:76px!important}}
+
+/* Bernardo placeholder: restore the complete head-and-shoulders silhouette. */
+.assignment-card .assignment-visual:not(:has(.staff-photo)) .person-icon{
+  position:relative!important;
+  display:block!important;
+  width:36px!important;
+  height:46px!important;
+  margin:0 auto!important;
+  flex:0 0 36px!important;
+  transform:none!important;
+  transform-origin:center!important;
+}
+.assignment-card .assignment-visual:not(:has(.staff-photo)) .person-icon:before{
+  content:""!important;
+  position:absolute!important;
+  display:block!important;
+  top:1px!important;
+  left:11px!important;
+  width:14px!important;
+  height:14px!important;
+  border-radius:50%!important;
+  background:var(--silhouette,#4d8c78)!important;
+}
+.assignment-card .assignment-visual:not(:has(.staff-photo)) .person-icon:after{
+  content:""!important;
+  position:absolute!important;
+  display:block!important;
+  left:2px!important;
+  bottom:0!important;
+  width:32px!important;
+  height:25px!important;
+  border-radius:50% 50% 3px 3px!important;
+  background:var(--silhouette,#4d8c78)!important;
+}
+
 </style>
 </head>
 <body>
