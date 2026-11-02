@@ -496,13 +496,33 @@ header .brand{margin-bottom:8px}
 .audit-empty{color:var(--muted);font-size:.85rem;padding:8px 0}
 @media(max-width:520px){.week-nav-btn{padding:5px 9px;min-width:32px}.live-pill{padding:7px 10px;font-size:.66rem}.board-day-row{gap:5px}.audit-table{font-size:.7rem}.audit-table th,.audit-table td{padding:7px 4px}}
 
+
+/* Reliable week picker and full-width team view */
+.visually-hidden{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.week-select-wrap{display:block;flex:1 1 250px;min-width:0;max-width:100%}
+#scheduleWeekSelect{display:block;width:100%;min-width:0;appearance:auto;background:#0b252b;color:#dff5f7;border:1px solid #315963;border-radius:10px;padding:11px 38px 11px 13px;font:inherit;font-weight:850;cursor:pointer}
+.schedule-week .week-status{flex:0 0 auto}
+#teamView{display:block;width:100%;max-width:none;min-width:0}
+#teamView .table-wrap,#teamView .audit-panel{width:100%;max-width:none}
+#teamView .team-grid{width:100%;min-width:720px;table-layout:fixed}
+#teamView .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+#teamView .team-grid th:first-child,#teamView .team-grid td:first-child{width:150px}
+@media(max-width:620px){
+ .schedule-week{align-items:stretch}
+ .week-select-wrap{flex-basis:100%;order:2}
+ .schedule-week .week-status{order:3}
+ #teamView{width:100%;max-width:none}
+ #teamView .team-grid{min-width:650px}
+ #teamView .team-grid th,#teamView .team-grid td{font-size:11px;padding:6px 4px}
+ #teamView .team-grid th:first-child,#teamView .team-grid td:first-child{width:112px}
+}
 </style>
 </head>
 <body>
 <header>
   <div class="kicker">CABO REAL SURF CLUB</div>
   <div class="brand">Staff <span>Rotation</span></div>
-  <div class="schedule-week" aria-live="polite"><button id="previousWeekButton" class="week-nav-btn" type="button" aria-label="Previous week">‹</button><span class="week-label">Schedule week</span><span id="scheduleWeekLabel">Loading schedule week…</span><button id="nextWeekButton" class="week-nav-btn" type="button" aria-label="Next week">›</button><span class="week-status" id="scheduleWeekStatus">Loading</span></div>
+  <div class="schedule-week" aria-live="polite"><span class="week-label">Schedule week</span><label class="week-select-wrap" for="scheduleWeekSelect"><span class="visually-hidden">Choose schedule week</span><select id="scheduleWeekSelect" aria-label="Choose schedule week"><option value="">Loading weeks…</option></select></label><span id="scheduleWeekLabel" class="hidden"></span><span class="week-status" id="scheduleWeekStatus">Loading</span></div>
   <nav class="tabs" aria-label="Main navigation">
     <button class="tab active" data-tab="live">Live Board</button><button class="tab" data-tab="week">My Week</button><button class="tab" data-tab="team">Whole Team</button>
   </nav>
@@ -633,7 +653,43 @@ function parseScheduleDate(value){
  const d=new Date(s);return Number.isNaN(d.getTime())?null:new Date(d.getFullYear(),d.getMonth(),d.getDate())
 }
 function validScheduleDate(y,m,d){const date=new Date(y,m-1,d);return date.getFullYear()===y&&date.getMonth()===m-1&&date.getDate()===d?date:null}
-function renderScheduleWeek(){let start=parseScheduleDate(scheduleInfoValue("Week Start Date")),end=parseScheduleDate(scheduleInfoValue("Week End Date"));let status=scheduleInfoValue("Schedule Status")||"SCHEDULE WEEK";const label=$("scheduleWeekLabel"),statusEl=$("scheduleWeekStatus");if(!label||!statusEl)return;if(!(start&&end&&end>=start)){const parts=Object.fromEntries(new Intl.DateTimeFormat("en-US",{timeZone:CABO_TZ,year:"numeric",month:"numeric",day:"numeric"}).formatToParts(new Date()).map(p=>[p.type,p.value]));const today=new Date(Date.UTC(+parts.year,+parts.month-1,+parts.day));const day=today.getUTCDay();start=new Date(today);start.setUTCDate(today.getUTCDate()-(day===0?6:day-1));end=new Date(start);end.setUTCDate(start.getUTCDate()+6);status="CURRENT WEEK · AUTO";}const fmt=(d,{month="long",day="numeric",year="numeric"}={})=>new Intl.DateTimeFormat("en-US",{month,day,year,timeZone:"UTC"}).format(new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())));label.textContent=start.getFullYear()===end.getFullYear()?(start.getMonth()===end.getMonth()?`${fmt(start,{month:"long",day:"numeric",year:"numeric"}).replace(", "+start.getFullYear(),"")} – ${fmt(end,{month:"long",day:"numeric",year:"numeric"}).replace(", "+end.getFullYear(),"")}, ${end.getFullYear()}`:`${fmt(start)} – ${fmt(end)}`):`${fmt(start)} – ${fmt(end)}`;statusEl.textContent=status}
+function renderScheduleWeek(){
+ let start=parseScheduleDate(scheduleInfoValue("Week Start Date")),end=parseScheduleDate(scheduleInfoValue("Week End Date"));
+ let status=scheduleInfoValue("Schedule Status")||"SCHEDULE WEEK";
+ const label=$("scheduleWeekLabel"),statusEl=$("scheduleWeekStatus"),picker=$("scheduleWeekSelect");
+ if(!label||!statusEl)return;
+ if(!(start&&end&&end>=start)){
+  const parts=Object.fromEntries(new Intl.DateTimeFormat("en-US",{timeZone:CABO_TZ,year:"numeric",month:"numeric",day:"numeric"}).formatToParts(new Date()).map(p=>[p.type,p.value]));
+  const today=new Date(Date.UTC(+parts.year,+parts.month-1,+parts.day)),day=today.getUTCDay();
+  start=new Date(today);start.setUTCDate(today.getUTCDate()-(day===0?6:day-1));end=new Date(start);end.setUTCDate(start.getUTCDate()+6);status="CURRENT WEEK · AUTO";
+ }
+ const fmt=(d)=>new Intl.DateTimeFormat("en-US",{month:"long",day:"numeric",year:"numeric",timeZone:"UTC"}).format(new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())));
+ const formatWeek=(monday)=>{
+  const a=new Date(monday+"T12:00:00Z"),b=new Date(a);b.setUTCDate(b.getUTCDate()+6);
+  const f=d=>new Intl.DateTimeFormat("en-US",{month:"short",day:"numeric",timeZone:"UTC"}).format(d);
+  return `${f(a)} – ${f(b)}, ${b.getUTCFullYear()}`;
+ };
+ const activeWeek=mondayISO(selectedDateISO||`${start.getFullYear()}-${String(start.getMonth()+1).padStart(2,"0")}-${String(start.getDate()).padStart(2,"0")}`);
+ if(picker){
+  const weekStarts=new Set(),monthly=monthlyScheduleData();
+  monthly.dates.forEach(item=>{
+   const iso=`${item.date.getFullYear()}-${String(item.date.getMonth()+1).padStart(2,"0")}-${String(item.date.getDate()).padStart(2,"0")}`;
+   weekStarts.add(mondayISO(iso));
+  });
+  const startISO=`${start.getFullYear()}-${String(start.getMonth()+1).padStart(2,"0")}-${String(start.getDate()).padStart(2,"0")}`;
+  weekStarts.add(mondayISO(startISO));weekStarts.add(activeWeek);
+  picker.innerHTML="";
+  [...weekStarts].sort().forEach(week=>{const option=document.createElement("option");option.value=week;option.textContent=formatWeek(week);picker.appendChild(option)});
+  picker.value=activeWeek;
+  picker.onchange=()=>{
+   if(!picker.value)return;
+   selectedDateISO=picker.value;weekStartISO=picker.value;boardMode="HISTORY";boardSelectionLocked=true;
+   renderLiveButton();fetchData();
+  };
+ }
+ label.textContent=`${fmt(start)} – ${fmt(end)}`;
+ statusEl.textContent=status;
+}
 function field(o,alts){const keys=Object.keys(o||{});for(const a of alts){const k=keys.find(x=>normalize(x)===normalize(a));if(k&&String(o[k]??"").trim())return o[k]}for(const a of alts){const k=keys.find(x=>normalize(x).includes(normalize(a)));if(k&&String(o[k]??"").trim())return o[k]}return ""}
 function canonicalStaffName(value){const name=String(value??"").trim();const key=normalize(name);const canonical=key==="bost"?"Pollo":key==="chino"?"Bernardo":name;return STAFF_NAMES.find(n=>normalize(n)===normalize(canonical))||""}
 function splitNames(v){return String(v??"").split(/[,;\n&]+/).map(x=>canonicalStaffName(x)).filter(Boolean)}
@@ -779,8 +835,8 @@ function weeklyScheduleRows(){return parseSheet("Weekly Schedule").map(r=>({
  type:String(field(r,["Employment Type","Type"])||"").trim(),
  day:String(field(r,["Day","Weekday"])||"").trim(),
  shift:String(field(r,["Shift","Shift Type"])||"").trim(),
- start:String(field(r,["Start","Start Time"])||"").trim(),
- end:String(field(r,["End","End Time"])||"").trim(),
+ start:String(field(r,["Start","Start Time"])||(/^(am|am crew|morning)$/i.test(String(field(r,["Shift","Shift Type"])||"").trim())?"7:00 AM":/^(pm|pm crew|afternoon)$/i.test(String(field(r,["Shift","Shift Type"])||"").trim())?"11:00 AM":"")).trim(),
+ end:String(field(r,["End","End Time"])||(/^(am|am crew|morning)$/i.test(String(field(r,["Shift","Shift Type"])||"").trim())?"3:00 PM":/^(pm|pm crew|afternoon)$/i.test(String(field(r,["Shift","Shift Type"])||"").trim())?"7:00 PM":"")).trim(),
  notes:String(field(r,["Notes","Note"])||"").trim()
 })).filter(r=>r.employee&&r.day&&r.shift)}
 function weeklyRows(){return weeklyScheduleRows().filter(r=>! /^(off|day off|days off)$/i.test(r.shift))}
@@ -1284,7 +1340,7 @@ function tick(){
 $("daySelect").addEventListener("change",()=>{selectedDateISO=isoAddDays(mondayISO(selectedDateISO),DAYS.indexOf($("daySelect").value));boardMode="HISTORY";boardSelectionLocked=true;renderLiveButton();fetchData()});
 $("hourSelect").addEventListener("change",()=>{if(boardMode==="LIVE")boardMode="HISTORY";boardSelectionLocked=true;fetchSequence++;renderLiveButton();renderAll()});
 $("liveButton").addEventListener("click",()=>{applyLiveSelection();fetchData()});
-$("previousWeekButton").addEventListener("click",()=>navigateWeek(-1));$("nextWeekButton").addEventListener("click",()=>navigateWeek(1));
+
 $("nowButton").addEventListener("click",()=>{$("liveButton").click()});
 $("weekEmployee").addEventListener("change",renderWeek);$("weekDay").addEventListener("change",renderWeek);document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>switchTab(b.dataset.tab)));
 applyLiveSelection();tick();setInterval(tick,15000);fetchData();setInterval(fetchData,REFRESH_MS);
