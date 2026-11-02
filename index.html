@@ -1157,7 +1157,7 @@ function normalizeAppsScriptSheets(payload){
  // Weekly roster: one normalized row per employee per day.
  const weekly=source["Weekly Schedule"];
  if(weekly&&Array.isArray(weekly.days)){
-  const rows=[];
+  const rows=[],weeklyPartyRows=[];
   weekly.days.forEach(d=>{
    Object.entries(d.assignments||{}).forEach(([employee,rawShift])=>{
     // My Week needs explicit times to create the hourly assignment cards.
@@ -1183,8 +1183,18 @@ function normalizeAppsScriptSheets(payload){
      Type:(source["Monthly Employee Schedule"]?.employees||[]).find(x=>x.name===employee)?.type||""
     });
    });
+   // Carry the party allocation for this exact date into the My Week view.
+   const party=d.poolParty;
+   if(party&&Array.isArray(party.rows)){
+    party.rows.forEach(pr=>{
+     const partyRow={Day:d.day||weekday(d.date),Hour:pr.hour||""};
+     (pr.assignments||[]).forEach(a=>{if(a?.position)partyRow[a.position]=a.employee||"";});
+     weeklyPartyRows.push(partyRow);
+    });
+   }
   });
   result["Weekly Schedule"]={rows};
+  if(weeklyPartyRows.length)result["Pool Party Coverage"]={rows:weeklyPartyRows};
  }
  // Monthly schedule: the existing UI expects one employee per row and one date per column.
  const monthly=source["Monthly Employee Schedule"];
@@ -1201,7 +1211,7 @@ function normalizeAppsScriptSheets(payload){
  if(pm)result["PM Hourly Rotation"]={rows:toRotationRows(pm)};
  // Keep the separate party-coverage sheet available for any view that reads it.
  const party=source["Pool Party Coverage"];
- if(party&&Array.isArray(party.rows)){
+ if(!result["Pool Party Coverage"]&&party&&Array.isArray(party.rows)){
   const day=weekday(party.date||source.selectedDate);
   result["Pool Party Coverage"]={rows:party.rows.map(r=>{
    const row={Day:day,Hour:r.hour||""};
