@@ -821,25 +821,8 @@ function renderWeek(){
     return {title:role.title,subtitle:role.subtitle,kind:role.kind};
    }
   }
-  const crew=weeklyCrewFor(d,shift);
-  const employeeIndex=crew.findIndex(n=>normalize(n)===normalize(employee));
-  if(employeeIndex>=0){
-   // A standard shift has five positions. Rotate through ordinary hours only;
-   // lunch and pool-party hours pause progression.
-   const shiftStart=shift==="AM"?7:11;
-   // Lunch and pool-party sessions are both pauses in the regular five-position
-   // rotation. Only ordinary operating hours advance the crew's rotation.
-   let workingSteps=0;
-   for(let step=shiftStart;step<h;step++){
-    if([11,12,13,14].includes(step))continue;
-    workingSteps++;
-   }
-   // Rotate the starting point across the week so staff do not repeatedly land
-   // in the same role each day. Lunch does not affect this day-to-day offset.
-   const dayIndex=Math.max(0,DAYS.findIndex(x=>normalize(x)===normalize(d)));
-   const roleIndex=((employeeIndex+workingSteps+dayIndex)%roles.length+roles.length)%roles.length;
-   return {title:roles[roleIndex].title,subtitle:roles[roleIndex].subtitle,kind:roles[roleIndex].kind};
-  }
+  // Never invent a role from a separate frontend formula. All seven days
+  // must use the same Apps Script-generated hourly rotation rows.
   return null;
  };
  rows.forEach(r=>{
@@ -1145,9 +1128,9 @@ function normalizeAppsScriptSheets(payload){
   const weekly=source["Weekly Schedule"]?.days||[];
   return weekly.find(x=>String(x.day||"").toLowerCase()===w)?.date||source.selectedDate||"";
  };
- const toRotationRows=(rotation)=>{
+ const toRotationRows=(rotation,dayOverride)=>{
   if(!rotation||!Array.isArray(rotation.rows))return [];
-  const day=weekday(rotation.date||source.selectedDate);
+  const day=dayOverride||weekday(rotation.date||source.selectedDate);
   return rotation.rows.map(r=>{
    const row={Day:day,Hour:r.hour||"",Type:r.type||"",RotationStep:r.rotationStep??""};
    (r.assignments||[]).forEach(a=>{if(a?.position)row[a.position]=a.employee||"";});
@@ -1157,44 +1140,46 @@ function normalizeAppsScriptSheets(payload){
  // Weekly roster: one normalized row per employee per day.
  const weekly=source["Weekly Schedule"];
  if(weekly&&Array.isArray(weekly.days)){
-  const rows=[],weeklyPartyRows=[];
+  const rows=[],weeklyPartyRows=[],weeklyAmRows=[],weeklyPmRows=[],weeklyLunchRows=[];
   weekly.days.forEach(d=>{
+   const day=d.day||weekday(d.date);
    Object.entries(d.assignments||{}).forEach(([employee,rawShift])=>{
-    // My Week needs explicit times to create the hourly assignment cards.
-    // Accept either a plain AM/PM value or a structured shift object.
-    const shiftValue = rawShift && typeof rawShift === "object"
-     ? (rawShift.shift || rawShift.type || rawShift.label || "")
-     : rawShift;
-    const shiftText = String(shiftValue || "").trim();
-    const isAM = /^am$/i.test(shiftText) || /^am\\b/i.test(shiftText);
-    const isPM = /^pm$/i.test(shiftText) || /^pm\\b/i.test(shiftText);
-    const start = rawShift && typeof rawShift === "object"
-     ? (rawShift.start || rawShift.Start || "")
-     : "";
-    const end = rawShift && typeof rawShift === "object"
-     ? (rawShift.end || rawShift.End || "")
-     : "";
+    const shiftValue=rawShift&&typeof rawShift==="object"
+     ?(rawShift.shift||rawShift.type||rawShift.label||"")
+     :rawShift;
+    const shiftText=String(shiftValue||"").trim();
+    const isAM=/^am$/i.test(shiftText)||/^am\b/i.test(shiftText);
+    const isPM=/^pm$/i.test(shiftText)||/^pm\b/i.test(shiftText);
+    const start=rawShift&&typeof rawShift==="object"?(rawShift.start||rawShift.Start||""):"";
+    const end=rawShift&&typeof rawShift==="object"?(rawShift.end||rawShift.End||""):"";
     rows.push({
-     Employee:employee,
-     Day:d.day||weekday(d.date),
-     Shift:shiftText,
-     Start:start || (isAM ? "7:00 AM" : isPM ? "11:00 AM" : ""),
-     End:end || (isAM ? "3:00 PM" : isPM ? "7:00 PM" : ""),
+     Employee:employee,Day:day,Shift:shiftText,
+     Start:start||(isAM?"7:00 AM":isPM?"11:00 AM":""),
+     End:end||(isAM?"3:00 PM":isPM?"7:00 PM":""),
      Type:(source["Monthly Employee Schedule"]?.employees||[]).find(x=>x.name===employee)?.type||""
     });
    });
-   // Carry the party allocation for this exact date into the My Week view.
+   weeklyAmRows.push(...toRotationRows(d.amRotation,day));
+   weeklyPmRows.push(...toRotationRows(d.pmRotation,day));
    const party=d.poolParty;
    if(party&&Array.isArray(party.rows)){
     party.rows.forEach(pr=>{
-     const partyRow={Day:d.day||weekday(d.date),Hour:pr.hour||""};
+     const partyRow={Day:day,Hour:pr.hour||""};
      (pr.assignments||[]).forEach(a=>{if(a?.position)partyRow[a.position]=a.employee||"";});
      weeklyPartyRows.push(partyRow);
     });
    }
+   if(d.lunch&&typeof d.lunch==="object"){
+    Object.entries(d.lunch).forEach(([hour,v])=>{
+     weeklyLunchRows.push({Day:day,Hour:hour,"On Break":(v.onBreak||[]).join(", "),"Working":(v.working||[]).join(", ")});
+    });
+   }
   });
   result["Weekly Schedule"]={rows};
+  if(weeklyAmRows.length)result["AM Hourly Rotation"]={rows:weeklyAmRows};
+  if(weeklyPmRows.length)result["PM Hourly Rotation"]={rows:weeklyPmRows};
   if(weeklyPartyRows.length)result["Pool Party Coverage"]={rows:weeklyPartyRows};
+  if(weeklyLunchRows.length)result["Lunch Coverage"]={rows:weeklyLunchRows};
  }
  // Monthly schedule: the existing UI expects one employee per row and one date per column.
  const monthly=source["Monthly Employee Schedule"];
@@ -1207,8 +1192,8 @@ function normalizeAppsScriptSheets(payload){
   result["Monthly Employee Schedule"]={rows};
  }
  const am=source["AM Hourly Rotation"],pm=source["PM Hourly Rotation"];
- if(am)result["AM Hourly Rotation"]={rows:toRotationRows(am)};
- if(pm)result["PM Hourly Rotation"]={rows:toRotationRows(pm)};
+ if(am&&!result["AM Hourly Rotation"])result["AM Hourly Rotation"]={rows:toRotationRows(am)};
+ if(pm&&!result["PM Hourly Rotation"])result["PM Hourly Rotation"]={rows:toRotationRows(pm)};
  // Keep the separate party-coverage sheet available for any view that reads it.
  const party=source["Pool Party Coverage"];
  if(!result["Pool Party Coverage"]&&party&&Array.isArray(party.rows)){
@@ -1221,7 +1206,7 @@ function normalizeAppsScriptSheets(payload){
  }
  // Lunch coverage is keyed by time and applies to the selected operational date.
  const lunch=source["Lunch Coverage"];
- if(lunch&&typeof lunch==="object"){
+ if(!result["Lunch Coverage"]&&lunch&&typeof lunch==="object"){
   const day=weekday(source.selectedDate||am?.date||pm?.date);
   result["Lunch Coverage"]={rows:Object.entries(lunch).map(([hour,v])=>({Day:day,Hour:hour,"On Break":(v.onBreak||[]).join(", "),"Working":(v.working||[]).join(", ")}))};
  }
