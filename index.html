@@ -653,6 +653,26 @@ header .brand{margin-bottom:8px}
  position:sticky;right:0;z-index:2;min-width:48px!important
 }
 
+
+/* Keep the complete aerial pool map visible on narrow screens. */
+.reference-map .aerial-stage{width:100%;min-width:0;overflow:hidden}
+.reference-map .aerial-image{
+ display:block!important;width:100%!important;height:auto!important;
+ aspect-ratio:auto!important;object-fit:contain!important;object-position:center center!important;
+ max-height:none!important;background:#102b30
+}
+/* Symmetrical rotation arrows: matching heights on both sides and a centered bottom arrow. */
+.compact-flow-panel .rotation-wheel{position:relative}
+.compact-flow-panel .wheel-arrow{transform:none!important;animation:none!important}
+.compact-flow-panel .a12{right:23%!important;left:auto!important;top:37%!important;bottom:auto!important}
+.compact-flow-panel .a51{left:23%!important;right:auto!important;top:37%!important;bottom:auto!important}
+.compact-flow-panel .a23{right:23%!important;left:auto!important;top:67%!important;bottom:auto!important}
+.compact-flow-panel .a45{left:23%!important;right:auto!important;top:67%!important;bottom:auto!important}
+.compact-flow-panel .a34{
+ left:50%!important;right:auto!important;top:auto!important;bottom:16%!important;
+ transform:translateX(-50%)!important
+}
+
 </style>
 </head>
 <body>
