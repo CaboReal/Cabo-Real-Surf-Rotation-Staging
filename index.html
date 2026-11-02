@@ -661,16 +661,45 @@ header .brand{margin-bottom:8px}
  aspect-ratio:auto!important;object-fit:contain!important;object-position:center center!important;
  max-height:none!important;background:#102b30
 }
-/* Symmetrical rotation arrows: matching heights on both sides and a centered bottom arrow. */
+/* Rotation arrows: side arrows sit at the inner corners of the outer nodes;
+   paired arrows stay level, and the bottom arrow is lowered and centered. */
 .compact-flow-panel .rotation-wheel{position:relative}
 .compact-flow-panel .wheel-arrow{transform:none!important;animation:none!important}
-.compact-flow-panel .a12{right:23%!important;left:auto!important;top:37%!important;bottom:auto!important}
-.compact-flow-panel .a51{left:23%!important;right:auto!important;top:37%!important;bottom:auto!important}
-.compact-flow-panel .a23{right:23%!important;left:auto!important;top:67%!important;bottom:auto!important}
-.compact-flow-panel .a45{left:23%!important;right:auto!important;top:67%!important;bottom:auto!important}
+.compact-flow-panel .a12{right:34%!important;left:auto!important;top:37%!important;bottom:auto!important}
+.compact-flow-panel .a51{left:34%!important;right:auto!important;top:37%!important;bottom:auto!important}
+.compact-flow-panel .a23{right:34%!important;left:auto!important;top:67%!important;bottom:auto!important}
+.compact-flow-panel .a45{left:34%!important;right:auto!important;top:67%!important;bottom:auto!important}
 .compact-flow-panel .a34{
- left:50%!important;right:auto!important;top:auto!important;bottom:16%!important;
+ left:50%!important;right:auto!important;top:auto!important;bottom:0!important;
  transform:translateX(-50%)!important
+}
+
+
+
+/* Match the four hand-marked diagonal arrow positions in the rotation-flow reference. */
+.compact-flow-panel .a51{
+  left:30%!important;
+  right:auto!important;
+  top:18%!important;
+  bottom:auto!important;
+}
+.compact-flow-panel .a12{
+  right:30%!important;
+  left:auto!important;
+  top:18%!important;
+  bottom:auto!important;
+}
+.compact-flow-panel .a45{
+  left:30%!important;
+  right:auto!important;
+  top:68%!important;
+  bottom:auto!important;
+}
+.compact-flow-panel .a23{
+  right:30%!important;
+  left:auto!important;
+  top:68%!important;
+  bottom:auto!important;
 }
 
 </style>
