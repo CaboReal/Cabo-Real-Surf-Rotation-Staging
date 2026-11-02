@@ -563,21 +563,49 @@ header .brand{margin-bottom:8px}
 
 
 
-/* Keep the operations history table inside its own scroll region.
-   Its four readable columns must never determine the width of Whole Team. */
-#teamView{width:100%;max-width:100%;min-width:0;overflow-x:clip}
+
+
+/* Fit both Whole Team tables inside the phone viewport: no horizontal scrolling. */
+#teamView{width:100%!important;max-width:100%!important;min-width:0!important;overflow:hidden!important;box-sizing:border-box}
+#teamView .table-wrap,
 #teamView .audit-panel,
-#teamView #operationsLog,
-#teamView .audit-table-scroll{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
-#teamView .audit-panel{overflow:hidden}
-#teamView .audit-table-scroll{display:block;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-inline:contain}
-#teamView .audit-table{width:680px;min-width:680px;max-width:none;table-layout:fixed}
-#teamView .audit-table th,#teamView .audit-table td{overflow-wrap:anywhere}
+#teamView #operationsLog{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box}
+#teamView .table-wrap{overflow:visible!important}
+#teamView .team-grid{width:100%!important;min-width:0!important;max-width:100%!important;table-layout:fixed!important}
+#teamView .team-grid th,
+#teamView .team-grid td{padding:5px 2px!important;font-size:clamp(9px,2.35vw,11px)!important;text-align:center;white-space:normal!important;overflow-wrap:anywhere;word-break:normal}
+#teamView .team-grid th:first-child,
+#teamView .team-grid td:first-child{width:19%!important;text-align:left;padding-left:5px!important;overflow-wrap:anywhere}
+#teamView .team-grid th:last-child,
+#teamView .team-grid td:last-child{width:9%!important}
+#teamView .team-grid .shift-badge{min-width:0;padding:4px 2px;font-size:clamp(8px,2.1vw,10px)}
+#teamView .audit-panel{padding:12px!important;overflow:hidden!important}
+#teamView #operationsLog{overflow:visible!important}
+#teamView .audit-table{display:table!important;width:100%!important;min-width:0!important;max-width:100%!important;table-layout:fixed!important;border-collapse:collapse;font-size:clamp(8px,2.15vw,10px)!important}
+#teamView .audit-table th,
+#teamView .audit-table td{padding:5px 3px!important;font-size:inherit!important;line-height:1.2;white-space:normal!important;overflow-wrap:anywhere;word-break:break-word;vertical-align:middle}
+#teamView .audit-table th:nth-child(1),
+#teamView .audit-table td:nth-child(1){width:27%}
+#teamView .audit-table th:nth-child(2),
+#teamView .audit-table td:nth-child(2){width:27%}
+#teamView .audit-table th:nth-child(3),
+#teamView .audit-table td:nth-child(3){width:23%}
+#teamView .audit-table th:nth-child(4),
+#teamView .audit-table td:nth-child(4){width:23%}
+#teamView .audit-table th{letter-spacing:.03em;font-size:clamp(7px,1.8vw,9px)!important}
 @media(max-width:620px){
- #teamView .audit-panel{padding:12px}
- #teamView .audit-table{width:650px;min-width:650px;font-size:.68rem}
- #teamView .audit-table th,#teamView .audit-table td{padding:7px 6px}
+ #teamView .team-grid th,#teamView .team-grid td{padding:4px 1px!important}
+ #teamView .team-grid th:first-child,#teamView .team-grid td:first-child{width:19%!important;padding-left:4px!important}
+ #teamView .team-grid th:last-child,#teamView .team-grid td:last-child{width:9%!important}
+ #teamView .audit-panel{padding:10px!important}
+ #teamView .audit-table th,#teamView .audit-table td{padding:4px 2px!important}
 }
+
+
+/* Tab visibility must always win over Whole Team layout overrides. */
+#teamView.hidden{display:none!important}
+#teamView:not(.hidden){display:block!important}
+#liveView.hidden,#weekView.hidden{display:none!important}
 
 </style>
 </head>
