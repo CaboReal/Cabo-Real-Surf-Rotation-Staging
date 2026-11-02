@@ -1159,8 +1159,29 @@ function normalizeAppsScriptSheets(payload){
  if(weekly&&Array.isArray(weekly.days)){
   const rows=[];
   weekly.days.forEach(d=>{
-   Object.entries(d.assignments||{}).forEach(([employee,shift])=>{
-    rows.push({Employee:employee,Day:d.day||weekday(d.date),"Shift":shift,"Type":(source["Monthly Employee Schedule"]?.employees||[]).find(x=>x.name===employee)?.type||""});
+   Object.entries(d.assignments||{}).forEach(([employee,rawShift])=>{
+    // My Week needs explicit times to create the hourly assignment cards.
+    // Accept either a plain AM/PM value or a structured shift object.
+    const shiftValue = rawShift && typeof rawShift === "object"
+     ? (rawShift.shift || rawShift.type || rawShift.label || "")
+     : rawShift;
+    const shiftText = String(shiftValue || "").trim();
+    const isAM = /^am$/i.test(shiftText) || /^am\\b/i.test(shiftText);
+    const isPM = /^pm$/i.test(shiftText) || /^pm\\b/i.test(shiftText);
+    const start = rawShift && typeof rawShift === "object"
+     ? (rawShift.start || rawShift.Start || "")
+     : "";
+    const end = rawShift && typeof rawShift === "object"
+     ? (rawShift.end || rawShift.End || "")
+     : "";
+    rows.push({
+     Employee:employee,
+     Day:d.day||weekday(d.date),
+     Shift:shiftText,
+     Start:start || (isAM ? "7:00 AM" : isPM ? "11:00 AM" : ""),
+     End:end || (isAM ? "3:00 PM" : isPM ? "7:00 PM" : ""),
+     Type:(source["Monthly Employee Schedule"]?.employees||[]).find(x=>x.name===employee)?.type||""
+    });
    });
   });
   result["Weekly Schedule"]={rows};
