@@ -481,13 +481,28 @@ header .brand{margin-bottom:8px}
   background:var(--silhouette,#4d8c78)!important;
 }
 
+
+.week-nav-btn{border:1px solid #315963;background:#0b252b;color:#d8f4f7;border-radius:9px;padding:6px 11px;font-size:1rem;font-weight:900;min-width:36px}
+.week-nav-btn:active{background:var(--cyan);color:#062b32}
+.board-day-row{display:flex;align-items:center;gap:7px;margin:8px 0 6px}
+.board-day-row .day-buttons{flex:1;min-width:0;margin:0}
+.live-pill{border:1px solid #287d65;background:#103a31;color:#9af1d0;border-radius:999px;padding:8px 13px;font-size:.72rem;font-weight:950;letter-spacing:.08em;white-space:nowrap}
+.live-pill.active{background:#19a879;color:#062b32;border-color:#19a879;box-shadow:0 0 0 2px #19a87933}
+.audit-panel{margin-top:22px;border:1px solid var(--line);background:var(--panel);border-radius:16px;padding:14px}
+.audit-panel h3{margin:0 0 8px;font-size:.95rem}
+.audit-table{width:100%;border-collapse:collapse;font-size:.78rem}
+.audit-table th,.audit-table td{padding:8px 7px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+.audit-table th{color:var(--muted);font-size:.68rem;text-transform:uppercase;letter-spacing:.06em}
+.audit-empty{color:var(--muted);font-size:.85rem;padding:8px 0}
+@media(max-width:520px){.week-nav-btn{padding:5px 9px;min-width:32px}.live-pill{padding:7px 10px;font-size:.66rem}.board-day-row{gap:5px}.audit-table{font-size:.7rem}.audit-table th,.audit-table td{padding:7px 4px}}
+
 </style>
 </head>
 <body>
 <header>
   <div class="kicker">CABO REAL SURF CLUB</div>
   <div class="brand">Staff <span>Rotation</span></div>
-  <div class="schedule-week" aria-live="polite"><span class="week-label">Schedule week</span><span id="scheduleWeekLabel">Schedule week not set — update the Schedule Info tab</span><span class="week-status" id="scheduleWeekStatus">Date needed</span></div>
+  <div class="schedule-week" aria-live="polite"><button id="previousWeekButton" class="week-nav-btn" type="button" aria-label="Previous week">‹</button><span class="week-label">Schedule week</span><span id="scheduleWeekLabel">Loading schedule week…</span><button id="nextWeekButton" class="week-nav-btn" type="button" aria-label="Next week">›</button><span class="week-status" id="scheduleWeekStatus">Loading</span></div>
   <nav class="tabs" aria-label="Main navigation">
     <button class="tab active" data-tab="live">Live Board</button><button class="tab" data-tab="week">My Week</button><button class="tab" data-tab="team">Whole Team</button>
   </nav>
@@ -497,7 +512,7 @@ header .brand{margin-bottom:8px}
 <section id="liveView">
   <div class="section-title">HIGHLIGHT A PERSON</div>
   <div id="employeePills" class="pills" aria-label="Employee selection"></div>
-  <div class="day-buttons" id="dayButtons" aria-label="Select day"></div>
+  <div class="board-day-row"><button id="liveButton" class="live-pill active" type="button" aria-pressed="true">● LIVE</button><div class="day-buttons" id="dayButtons" aria-label="Select day"></div></div>
   <div class="hour-buttons" id="hourButtons" aria-label="Select hour"></div>
   <div class="toolbar hidden"><label for="daySelect">Day</label><select id="daySelect"><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option></select><label for="hourSelect">Rotation</label><select id="hourSelect"></select><button id="nowButton" class="pill">Current time</button></div>
   <div id="partyNotice" class="notice hidden"></div>
@@ -578,7 +593,7 @@ header .brand{margin-bottom:8px}
   <div class="team-caption"><strong>Whole team</strong> · switch between the current week and the monthly schedule. In MONTH, use the week dropdown to show one week at a time. Tap a name to highlight their row.</div>
   <div class="team-view-toggle" role="group" aria-label="Schedule view"><button type="button" class="team-view-btn active" data-team-view="week">WEEK</button><button type="button" class="team-view-btn" data-team-view="month">MONTH</button></div>
   <div id="teamMonthWeekFilter" class="team-month-week-filter hidden"><label for="teamMonthSelect">Month</label><select id="teamMonthSelect" aria-label="Select a month in the monthly schedule"></select><label for="teamWeekSelect">Show week</label><select id="teamWeekSelect" aria-label="Select a week in the monthly schedule"></select></div>
-  <div id="teamSummary" class="muted"></div><div id="teamTable" class="table-wrap"></div><div class="team-caption" id="teamHoursNote">AM 7:00 AM–3:00 PM · PM 11:00 AM–7:00 PM · Each shift is 8 hours, including a 1-hour paid lunch.</div>
+  <div id="teamSummary" class="muted"></div><div id="teamTable" class="table-wrap"></div><div class="audit-panel"><h3>Schedule & Operations History</h3><div class="muted" style="font-size:.8rem;margin-bottom:8px">Published weeks are preserved automatically once all seven days have complete crew assignments. Supervisor changes are recorded separately.</div><div id="operationsLog"><div class="audit-empty">Loading operations history…</div></div></div><div class="team-caption" id="teamHoursNote">AM 7:00 AM–3:00 PM · PM 11:00 AM–7:00 PM · Each shift is 8 hours, including a 1-hour paid lunch.</div>
 </section>
 </main>
 <footer><span>Staff Rotation · Cabo Real Surf Club</span><span id="updatedLabel">Waiting for first data refresh</span></footer>
@@ -588,7 +603,18 @@ const REFRESH_MS=30000,CABO_TZ="America/Mazatlan";
 const DAYS=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 const STAFF_NAMES=["Kody","Ana","Bernardo","Diana","Felix","Fernando","Green","Linden","Lucho","Makeni","Marley","Pollo","Pomo","Tlaca","Toni","Wikin"];
 let rootData=null,sheetMap={},employees=[...STAFF_NAMES],selectedEmployee="",allRows=[],echoData=null;
-let boardSelectionLocked=false; // Keep a manually selected day/hour during background data refreshes.
+let boardSelectionLocked=false;
+let boardMode="LIVE",selectedDateISO="",weekStartISO="",fetchSequence=0;
+function caboDateISO(){const p=Object.fromEntries(new Intl.DateTimeFormat("en-CA",{timeZone:CABO_TZ,year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date()).map(x=>[x.type,x.value]));return `${p.year}-${p.month}-${p.day}`}
+function isoAddDays(iso,n){const d=new Date(iso+"T12:00:00Z");d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)}
+function isoWeekdayIndex(iso){return (new Date(iso+"T12:00:00Z").getUTCDay()+6)%7}
+function mondayISO(iso){return isoAddDays(iso,-isoWeekdayIndex(iso))}
+function liveOperatingDateISO(){const now=new Date(),p=Object.fromEntries(new Intl.DateTimeFormat("en-US",{timeZone:CABO_TZ,hour:"2-digit",hourCycle:"h23"}).formatToParts(now).map(x=>[x.type,x.value]));const today=caboDateISO();return Number(p.hour)>=19?isoAddDays(today,1):today}
+function liveOperatingHour(){const p=Object.fromEntries(new Intl.DateTimeFormat("en-US",{timeZone:CABO_TZ,hour:"2-digit",hourCycle:"h23"}).formatToParts(new Date()).map(x=>[x.type,x.value]));const h=Number(p.hour);return h>=7&&h<19?h:7}
+function selectedDayName(){return DAYS[isoWeekdayIndex(selectedDateISO||liveOperatingDateISO())]}
+function applyLiveSelection(){boardMode="LIVE";boardSelectionLocked=false;selectedDateISO=liveOperatingDateISO();weekStartISO=mondayISO(selectedDateISO);$("daySelect").value=selectedDayName();populateTimes(false);const match=[...$("hourSelect").options].find(o=>hourStart(o.value)===liveOperatingHour());if(match)$("hourSelect").value=match.value;renderLiveButton()}
+function renderLiveButton(){const b=$("liveButton");if(!b)return;const active=boardMode==="LIVE";b.classList.toggle("active",active);b.setAttribute("aria-pressed",String(active));b.textContent=active?"● LIVE":"LIVE"}
+function navigateWeek(delta){const oldDate=selectedDateISO||liveOperatingDateISO(),dayOffset=isoWeekdayIndex(oldDate);const nextStart=isoAddDays(mondayISO(oldDate),delta*7);selectedDateISO=isoAddDays(nextStart,dayOffset);weekStartISO=nextStart;boardMode="HISTORY";boardSelectionLocked=true;renderLiveButton();fetchData()}
 const $=id=>document.getElementById(id),normalize=s=>String(s??"").trim().toLowerCase().replace(/\s+/g," ");
 function asArray(v){if(Array.isArray(v))return v;if(v&&typeof v==="object")return Object.keys(v).sort((a,b)=>Number(a)-Number(b)).map(k=>v[k]);return []}
 function parseSheet(name){const s=sheetMap[name];if(!s)return [];const headers=asArray(s.headers).map(v=>String(v??"").trim());let rows=asArray(s.values);if(!rows.length)rows=asArray(s.rows);return rows.map(r=>{if(r&&!Array.isArray(r)&&typeof r==="object")return r;const o={};headers.forEach((h,i)=>o[h]=asArray(r)[i]??"");return o}).filter(o=>Object.values(o).some(v=>String(v??"").trim()!==""))}
@@ -821,8 +847,25 @@ function renderWeek(){
     return {title:role.title,subtitle:role.subtitle,kind:role.kind};
    }
   }
-  // Never invent a role from a separate frontend formula. All seven days
-  // must use the same Apps Script-generated hourly rotation rows.
+  const crew=weeklyCrewFor(d,shift);
+  const employeeIndex=crew.findIndex(n=>normalize(n)===normalize(employee));
+  if(employeeIndex>=0){
+   // A standard shift has five positions. Rotate through ordinary hours only;
+   // lunch and pool-party hours pause progression.
+   const shiftStart=shift==="AM"?7:11;
+   // Lunch and pool-party sessions are both pauses in the regular five-position
+   // rotation. Only ordinary operating hours advance the crew's rotation.
+   let workingSteps=0;
+   for(let step=shiftStart;step<h;step++){
+    if([11,12,13,14].includes(step))continue;
+    workingSteps++;
+   }
+   // Rotate the starting point across the week so staff do not repeatedly land
+   // in the same role each day. Lunch does not affect this day-to-day offset.
+   const dayIndex=Math.max(0,DAYS.findIndex(x=>normalize(x)===normalize(d)));
+   const roleIndex=((employeeIndex+workingSteps+dayIndex)%roles.length+roles.length)%roles.length;
+   return {title:roles[roleIndex].title,subtitle:roles[roleIndex].subtitle,kind:roles[roleIndex].kind};
+  }
   return null;
  };
  rows.forEach(r=>{
@@ -1052,8 +1095,8 @@ function renderVisualCards(){
  nextAssignments.forEach((a,i)=>host.appendChild(makeAssignmentCard(i,a.title,a.subtitle,a.name,true,a.color)));
  const vals=assignmentValues(row);const flowMap=[["flowPusher",vals[0]],["flowCatcher",vals[1]],["flowTower",vals[2]],["flowBoardA",vals[3]],["flowBoardB",vals[4]]];flowMap.forEach(([id,v])=>$(id).textContent=v);renderSchedule()
 }
-function renderDayButtons(){const host=$("dayButtons");if(!host)return;host.innerHTML="";DAYS.forEach(d=>{const b=document.createElement("button");b.className="day-btn"+(normalize($("daySelect").value)===normalize(d)?" active":"");b.textContent=d.slice(0,3);if(normalize(d)===normalize(currentDay()))b.dataset.today="true";b.onclick=()=>{$("daySelect").value=d;populateTimes(false);renderAll()};host.appendChild(b)})}
-function renderHourButtons(){const host=$("hourButtons");if(!host)return;host.innerHTML="";[...$("hourSelect").options].forEach(o=>{const b=document.createElement("button");b.className="hour-btn"+(o.value===$("hourSelect").value?" active":"");const h=hourStart(o.value);b.textContent=h===0?"12a":h<12?`${h}a`:h===12?"12p":`${h-12}p`;b.title=o.value;b.onclick=()=>{$("hourSelect").value=o.value;renderAll()};host.appendChild(b)})}
+function renderDayButtons(){const host=$("dayButtons");if(!host)return;host.innerHTML="";DAYS.forEach((d,i)=>{const date=isoAddDays(mondayISO(selectedDateISO||liveOperatingDateISO()),i),b=document.createElement("button");b.className="day-btn"+(date===selectedDateISO?" active":"");b.textContent=d.slice(0,3);if(date===liveOperatingDateISO())b.dataset.today="true";b.title=date;b.onclick=()=>{selectedDateISO=date;weekStartISO=mondayISO(date);boardMode="HISTORY";boardSelectionLocked=true;$("daySelect").value=d;renderLiveButton();fetchData()};host.appendChild(b)})}
+function renderHourButtons(){const host=$("hourButtons");if(!host)return;host.innerHTML="";[...$("hourSelect").options].forEach(o=>{const b=document.createElement("button");b.className="hour-btn"+(o.value===$("hourSelect").value?" active":"");const h=hourStart(o.value);b.textContent=h===0?"12a":h<12?`${h}a`:h===12?"12p":`${h-12}p`;b.title=o.value;b.onclick=()=>{$("hourSelect").value=o.value;if(boardMode==="LIVE")boardMode="HISTORY";boardSelectionLocked=true;fetchSequence++;renderLiveButton();renderAll()};host.appendChild(b)})}
 
 function crewNamesFromValue(value){return splitNames(value).filter(n=>employees.includes(n))}
 function renderCrewNames(id,names){const el=$(id);el.innerHTML="";const clean=[...new Set(names)].filter(n=>employees.includes(n));if(!clean.length){el.innerHTML='<span class="crew-empty">No crew assignment recorded</span>';return}clean.forEach(name=>{const span=document.createElement("span");span.className="crew-name";span.textContent=name;el.appendChild(span)})}
@@ -1105,10 +1148,19 @@ function applyNameHighlights(){
   if(first&&normalize(first.textContent)===target)first.classList.add("name-match-highlight");
  });
 }
+
+function renderOperationsLog(){
+ const host=$("operationsLog");if(!host)return;const rows=parseSheet("Operations Log");
+ if(!rows.length){host.innerHTML='<div class="audit-empty">No supervisor changes or archive events have been recorded yet.</div>';return}
+ const sorted=rows.slice().reverse().slice(0,60);const table=document.createElement("table");table.className="audit-table";
+ const thead=document.createElement("thead"),trh=document.createElement("tr");["When","Action","Record","Supervisor"].forEach(t=>{const th=document.createElement("th");th.textContent=t;trh.appendChild(th)});thead.appendChild(trh);table.appendChild(thead);
+ const tbody=document.createElement("tbody");sorted.forEach(r=>{const tr=document.createElement("tr");const vals=[field(r,["Timestamp"]),field(r,["Action"]),field(r,["Record ID"]),field(r,["Supervisor"])];vals.forEach((v,i)=>{const td=document.createElement("td");let text=String(v??"");if(i===0&&text){const d=new Date(text);if(!Number.isNaN(d.getTime()))text=new Intl.DateTimeFormat("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit",timeZone:CABO_TZ}).format(d)}td.textContent=text||"—";tr.appendChild(td)});tbody.appendChild(tr)});table.appendChild(tbody);host.replaceChildren(table);
+}
+
 function renderAll(){
  // Render the schedule first so an unrelated dashboard widget cannot hide it.
  try{renderSchedule()}catch(e){console.error("Hourly schedule render failed:",e);const host=$("hourlySchedule");if(host)host.innerHTML='<div class="empty-state">The roster loaded, but the hourly schedule could not be displayed: '+esc(e.message||String(e))+'</div>'}
- const tasks=[renderPills,renderDayButtons,renderHourButtons,renderDailyCrew,renderBoard,renderVisualCards,populateEmployees,renderWeek,renderTeam];
+ const tasks=[renderPills,renderDayButtons,renderHourButtons,renderDailyCrew,renderBoard,renderVisualCards,populateEmployees,renderWeek,renderTeam,renderOperationsLog];
  tasks.forEach(fn=>{try{fn()}catch(e){console.error("Dashboard section failed:",fn.name,e)}});
  applyNameHighlights();
 }
@@ -1128,9 +1180,9 @@ function normalizeAppsScriptSheets(payload){
   const weekly=source["Weekly Schedule"]?.days||[];
   return weekly.find(x=>String(x.day||"").toLowerCase()===w)?.date||source.selectedDate||"";
  };
- const toRotationRows=(rotation,dayOverride)=>{
+ const toRotationRows=(rotation)=>{
   if(!rotation||!Array.isArray(rotation.rows))return [];
-  const day=dayOverride||weekday(rotation.date||source.selectedDate);
+  const day=weekday(rotation.date||source.selectedDate);
   return rotation.rows.map(r=>{
    const row={Day:day,Hour:r.hour||"",Type:r.type||"",RotationStep:r.rotationStep??""};
    (r.assignments||[]).forEach(a=>{if(a?.position)row[a.position]=a.employee||"";});
@@ -1140,46 +1192,13 @@ function normalizeAppsScriptSheets(payload){
  // Weekly roster: one normalized row per employee per day.
  const weekly=source["Weekly Schedule"];
  if(weekly&&Array.isArray(weekly.days)){
-  const rows=[],weeklyPartyRows=[],weeklyAmRows=[],weeklyPmRows=[],weeklyLunchRows=[];
+  const rows=[];
   weekly.days.forEach(d=>{
-   const day=d.day||weekday(d.date);
-   Object.entries(d.assignments||{}).forEach(([employee,rawShift])=>{
-    const shiftValue=rawShift&&typeof rawShift==="object"
-     ?(rawShift.shift||rawShift.type||rawShift.label||"")
-     :rawShift;
-    const shiftText=String(shiftValue||"").trim();
-    const isAM=/^am$/i.test(shiftText)||/^am\b/i.test(shiftText);
-    const isPM=/^pm$/i.test(shiftText)||/^pm\b/i.test(shiftText);
-    const start=rawShift&&typeof rawShift==="object"?(rawShift.start||rawShift.Start||""):"";
-    const end=rawShift&&typeof rawShift==="object"?(rawShift.end||rawShift.End||""):"";
-    rows.push({
-     Employee:employee,Day:day,Shift:shiftText,
-     Start:start||(isAM?"7:00 AM":isPM?"11:00 AM":""),
-     End:end||(isAM?"3:00 PM":isPM?"7:00 PM":""),
-     Type:(source["Monthly Employee Schedule"]?.employees||[]).find(x=>x.name===employee)?.type||""
-    });
+   Object.entries(d.assignments||{}).forEach(([employee,shift])=>{
+    rows.push({Employee:employee,Day:d.day||weekday(d.date),"Shift":shift,"Type":(source["Monthly Employee Schedule"]?.employees||[]).find(x=>x.name===employee)?.type||""});
    });
-   weeklyAmRows.push(...toRotationRows(d.amRotation,day));
-   weeklyPmRows.push(...toRotationRows(d.pmRotation,day));
-   const party=d.poolParty;
-   if(party&&Array.isArray(party.rows)){
-    party.rows.forEach(pr=>{
-     const partyRow={Day:day,Hour:pr.hour||""};
-     (pr.assignments||[]).forEach(a=>{if(a?.position)partyRow[a.position]=a.employee||"";});
-     weeklyPartyRows.push(partyRow);
-    });
-   }
-   if(d.lunch&&typeof d.lunch==="object"){
-    Object.entries(d.lunch).forEach(([hour,v])=>{
-     weeklyLunchRows.push({Day:day,Hour:hour,"On Break":(v.onBreak||[]).join(", "),"Working":(v.working||[]).join(", ")});
-    });
-   }
   });
   result["Weekly Schedule"]={rows};
-  if(weeklyAmRows.length)result["AM Hourly Rotation"]={rows:weeklyAmRows};
-  if(weeklyPmRows.length)result["PM Hourly Rotation"]={rows:weeklyPmRows};
-  if(weeklyPartyRows.length)result["Pool Party Coverage"]={rows:weeklyPartyRows};
-  if(weeklyLunchRows.length)result["Lunch Coverage"]={rows:weeklyLunchRows};
  }
  // Monthly schedule: the existing UI expects one employee per row and one date per column.
  const monthly=source["Monthly Employee Schedule"];
@@ -1192,11 +1211,11 @@ function normalizeAppsScriptSheets(payload){
   result["Monthly Employee Schedule"]={rows};
  }
  const am=source["AM Hourly Rotation"],pm=source["PM Hourly Rotation"];
- if(am&&!result["AM Hourly Rotation"])result["AM Hourly Rotation"]={rows:toRotationRows(am)};
- if(pm&&!result["PM Hourly Rotation"])result["PM Hourly Rotation"]={rows:toRotationRows(pm)};
+ if(am)result["AM Hourly Rotation"]={rows:toRotationRows(am)};
+ if(pm)result["PM Hourly Rotation"]={rows:toRotationRows(pm)};
  // Keep the separate party-coverage sheet available for any view that reads it.
  const party=source["Pool Party Coverage"];
- if(!result["Pool Party Coverage"]&&party&&Array.isArray(party.rows)){
+ if(party&&Array.isArray(party.rows)){
   const day=weekday(party.date||source.selectedDate);
   result["Pool Party Coverage"]={rows:party.rows.map(r=>{
    const row={Day:day,Hour:r.hour||""};
@@ -1206,79 +1225,76 @@ function normalizeAppsScriptSheets(payload){
  }
  // Lunch coverage is keyed by time and applies to the selected operational date.
  const lunch=source["Lunch Coverage"];
- if(!result["Lunch Coverage"]&&lunch&&typeof lunch==="object"){
+ if(lunch&&typeof lunch==="object"){
   const day=weekday(source.selectedDate||am?.date||pm?.date);
   result["Lunch Coverage"]={rows:Object.entries(lunch).map(([hour,v])=>({Day:day,Hour:hour,"On Break":(v.onBreak||[]).join(", "),"Working":(v.working||[]).join(", ")}))};
  }
+ // Expose the append-only operations log in the supervisor history panel.
+ const ops=source["Operations Log"];
+ if(Array.isArray(ops)&&ops.length){result["Operations Log"]={headers:ops[0],rows:ops.slice(1)}}
  // The schedule-week banner reads these two settings from a small info table.
  if(weekly&&Array.isArray(weekly.days)&&weekly.days.length){
   const dates=weekly.days.map(d=>d.date).filter(Boolean).sort();
   result["Schedule Info"]={rows:[
    {Setting:"Week Start Date",Value:weekly.weekStarting||dates[0]||""},
-   {Setting:"Week End Date",Value:dates[dates.length-1]||""},
-   {Setting:"Schedule Status",Value:"PUBLISHED WEEK"}
+   {Setting:"Week End Date",Value:weekly.weekEnding||dates[dates.length-1]||""},
+   {Setting:"Schedule Status",Value:weekly.status||(weekly.published?"PUBLISHED WEEK":"NOT PUBLISHED")}
   ]};
  }
  return result;
 }
 async function fetchData(){
- const heldDay=$("daySelect")?.value||"";
+ const requestSequence=++fetchSequence;
+ if(!selectedDateISO)selectedDateISO=liveOperatingDateISO();
+ if(boardMode==="LIVE"){
+  const liveDate=liveOperatingDateISO();
+  if(liveDate!==selectedDateISO){selectedDateISO=liveDate;weekStartISO=mondayISO(liveDate)}
+  $("daySelect").value=selectedDayName();
+ }
  const heldHour=$("hourSelect")?.value||"";
- const holdSelection=boardSelectionLocked;
+ const holdSelection=boardMode!=="LIVE";
  let phase="requesting Google Apps Script";
  try{
-  // Ask Apps Script for the current Cabo-local month so the monthly schedule
-  // advances automatically when the calendar month changes.
-  const nowParts=Object.fromEntries(new Intl.DateTimeFormat("en-US",{
-   timeZone:CABO_TZ,year:"numeric",month:"long"
-  }).formatToParts(new Date()).map(p=>[p.type,p.value]));
-  const monthName=nowParts.month+" "+nowParts.year;
-  const url=SCRIPT_URL+"?month="+encodeURIComponent(monthName)+"&_="+Date.now();
+  const url=SCRIPT_URL+"?date="+encodeURIComponent(selectedDateISO)+"&_="+Date.now();
   const res=await fetch(url,{method:"GET",cache:"no-store"});
   if(!res.ok)throw Error("Apps Script request failed (HTTP "+res.status+").");
   phase="reading Apps Script JSON";
   const response=await res.json();
+  if(requestSequence!==fetchSequence)return;
   if(!response||typeof response!=="object")throw Error("Apps Script returned invalid JSON.");
-  if(response.status&&String(response.status).toLowerCase()!=="success"){
-   throw Error(response.message||"Apps Script reported an unsuccessful response.");
-  }
+  if(response.status&&String(response.status).toLowerCase()!=="success")throw Error(response.message||"Apps Script reported an unsuccessful response.");
   const sheets=normalizeAppsScriptSheets(response);
   const required=["Weekly Schedule","AM Hourly Rotation","PM Hourly Rotation"];
-  const missing=required.filter(k=>!sheets[k]);
-  if(missing.length)throw Error("Apps Script response is missing: "+missing.join(", ")+".");
-  rootData=response;
-  echoData=response.data||response;
-  sheetMap=sheets;
-  renderScheduleWeek();
-  allRows=getAllAssignments();
-  employees=parseEmployees();
-
-  // The live board follows today's Cabo day by default. A manual day/hour
-  // selection is preserved during background refreshes.
-  const day=holdSelection&&DAYS.includes(heldDay)?heldDay:currentDay();
-  $("daySelect").value=day;
-  populateTimes(holdSelection);
-  if(holdSelection&&heldHour&&[...$("hourSelect").options].some(o=>o.value===heldHour)){
-   $("hourSelect").value=heldHour;
-  }
-  phase="rendering dashboard";
-  renderAll();
-  connected(true,"Live connected · Google Apps Script");
-  const sourceStamp=response.timestamp||response.generatedAt||response.data?.generatedAt;
-  const sourceTime=sourceStamp?new Date(sourceStamp):new Date();
+  const missing=required.filter(k=>!sheets[k]);if(missing.length)throw Error("Apps Script response is missing: "+missing.join(", ")+".");
+  rootData=response;echoData=response.data||response;sheetMap=sheets;
+  weekStartISO=response["Weekly Schedule"]?.weekStarting||mondayISO(selectedDateISO);
+  renderScheduleWeek();allRows=getAllAssignments();employees=parseEmployees();
+  const day=selectedDayName();$("daySelect").value=day;populateTimes(holdSelection);
+  if(boardMode==="LIVE"){
+   const m=[...$("hourSelect").options].find(o=>hourStart(o.value)===liveOperatingHour());if(m)$("hourSelect").value=m.value;
+  }else if(heldHour&&[...$("hourSelect").options].some(o=>o.value===heldHour))$("hourSelect").value=heldHour;
+  phase="rendering dashboard";renderAll();renderLiveButton();
+  connected(true,boardMode==="LIVE"?"Live connected · Google Apps Script":"History view · Google Apps Script");
+  const sourceStamp=response.timestamp||response.generatedAt||response.data?.generatedAt,sourceTime=sourceStamp?new Date(sourceStamp):new Date();
   const displayedTime=Number.isNaN(sourceTime.getTime())?timeText():new Intl.DateTimeFormat("en-US",{timeZone:CABO_TZ,hour:"numeric",minute:"2-digit",hour12:true}).format(sourceTime);
   $("updatedLabel").textContent="Updated "+displayedTime+" Cabo time";
-  console.info("Cabo Real Apps Script data timestamp:",sourceTime.toISOString());
- }catch(e){
-  console.error("Cabo Real roster error during "+phase+":",e);
-  // Never disguise an old embedded snapshot as live data. Keep the last
-  // successfully loaded screen visible, but clearly show the connection error.
-  connected(false,"Apps Script connection error");
-  $("updatedLabel").textContent="NOT REFRESHED · Apps Script connection failed";
+ }catch(e){if(requestSequence!==fetchSequence)return;console.error("Cabo Real roster error during "+phase+":",e);connected(false,"Apps Script connection error");$("updatedLabel").textContent="NOT REFRESHED · Apps Script connection failed"}
+}
+function tick(){
+ const p=parts();$("liveClock").textContent=timeText();$("dateLabel").textContent=`${p.weekday} · ${p.month} ${p.day} · Cabo time`;const open=currentHour()>=7&&currentHour()<19;$("operatingStatus").textContent=open?"Club operating hours":"Club currently closed";
+ if(boardMode==="LIVE"){
+  const liveDate=liveOperatingDateISO();
+  if(liveDate!==selectedDateISO){selectedDateISO=liveDate;weekStartISO=mondayISO(liveDate);$("daySelect").value=selectedDayName();fetchData();}
  }
 }
-function tick(){const p=parts();$("liveClock").textContent=timeText();$("dateLabel").textContent=`${p.weekday} · ${p.month} ${p.day} · Cabo time`;const open=currentHour()>=7&&currentHour()<19;$("operatingStatus").textContent=open?"Club operating hours":"Club currently closed"}
-$("daySelect").addEventListener("change",()=>{boardSelectionLocked=true;populateTimes(false);renderAll()});$("hourSelect").addEventListener("change",()=>{boardSelectionLocked=true;renderAll()});$("nowButton").addEventListener("click",()=>{boardSelectionLocked=false;$("daySelect").value=currentDay();populateTimes(false);const m=[...$("hourSelect").options].find(o=>hourStart(o.value)===currentHour());if(m)$("hourSelect").value=m.value;renderAll()});$("weekEmployee").addEventListener("change",renderWeek);$("weekDay").addEventListener("change",renderWeek);document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>switchTab(b.dataset.tab)));tick();setInterval(tick,15000);fetchData();setInterval(fetchData,REFRESH_MS);
+$("daySelect").addEventListener("change",()=>{selectedDateISO=isoAddDays(mondayISO(selectedDateISO),DAYS.indexOf($("daySelect").value));boardMode="HISTORY";boardSelectionLocked=true;renderLiveButton();fetchData()});
+$("hourSelect").addEventListener("change",()=>{if(boardMode==="LIVE")boardMode="HISTORY";boardSelectionLocked=true;fetchSequence++;renderLiveButton();renderAll()});
+$("liveButton").addEventListener("click",()=>{applyLiveSelection();fetchData()});
+$("previousWeekButton").addEventListener("click",()=>navigateWeek(-1));$("nextWeekButton").addEventListener("click",()=>navigateWeek(1));
+$("nowButton").addEventListener("click",()=>{$("liveButton").click()});
+$("weekEmployee").addEventListener("change",renderWeek);$("weekDay").addEventListener("change",renderWeek);document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>switchTab(b.dataset.tab)));
+applyLiveSelection();tick();setInterval(tick,15000);fetchData();setInterval(fetchData,REFRESH_MS);
+
 </script>
 </body>
 </html>
