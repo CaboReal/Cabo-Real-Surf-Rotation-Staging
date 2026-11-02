@@ -483,7 +483,7 @@ header .brand{margin-bottom:8px}
 
 
 .week-nav-btn{border:1px solid #315963;background:#0b252b;color:#d8f4f7;border-radius:9px;padding:6px 11px;font-size:1rem;font-weight:900;min-width:36px}
-.week-nav-btn:active{background:var(--cyan);color:#062b32}
+.week-nav-btn:active{background:var(--cyan);color:#062b32}.week-nav-btn{position:relative;z-index:20;pointer-events:auto;touch-action:manipulation;cursor:pointer}
 .board-day-row{display:flex;align-items:center;gap:7px;margin:8px 0 6px}
 .board-day-row .day-buttons{flex:1;min-width:0;margin:0}
 .live-pill{border:1px solid #287d65;background:#103a31;color:#9af1d0;border-radius:999px;padding:8px 13px;font-size:.72rem;font-weight:950;letter-spacing:.08em;white-space:nowrap}
@@ -847,25 +847,8 @@ function renderWeek(){
     return {title:role.title,subtitle:role.subtitle,kind:role.kind};
    }
   }
-  const crew=weeklyCrewFor(d,shift);
-  const employeeIndex=crew.findIndex(n=>normalize(n)===normalize(employee));
-  if(employeeIndex>=0){
-   // A standard shift has five positions. Rotate through ordinary hours only;
-   // lunch and pool-party hours pause progression.
-   const shiftStart=shift==="AM"?7:11;
-   // Lunch and pool-party sessions are both pauses in the regular five-position
-   // rotation. Only ordinary operating hours advance the crew's rotation.
-   let workingSteps=0;
-   for(let step=shiftStart;step<h;step++){
-    if([11,12,13,14].includes(step))continue;
-    workingSteps++;
-   }
-   // Rotate the starting point across the week so staff do not repeatedly land
-   // in the same role each day. Lunch does not affect this day-to-day offset.
-   const dayIndex=Math.max(0,DAYS.findIndex(x=>normalize(x)===normalize(d)));
-   const roleIndex=((employeeIndex+workingSteps+dayIndex)%roles.length+roles.length)%roles.length;
-   return {title:roles[roleIndex].title,subtitle:roles[roleIndex].subtitle,kind:roles[roleIndex].kind};
-  }
+  // Do not invent a position when the API has no assignment for this hour.
+  // The weekly view must mirror the published hourly rotation exactly.
   return null;
  };
  rows.forEach(r=>{
@@ -1190,15 +1173,26 @@ function normalizeAppsScriptSheets(payload){
   });
  };
  // Weekly roster: one normalized row per employee per day.
+ // Also carry each date's exact API-generated rotations into the week view.
  const weekly=source["Weekly Schedule"];
+ const weeklyAmRows=[],weeklyPmRows=[],weeklyPartyRows=[];
  if(weekly&&Array.isArray(weekly.days)){
   const rows=[];
   weekly.days.forEach(d=>{
    Object.entries(d.assignments||{}).forEach(([employee,shift])=>{
     rows.push({Employee:employee,Day:d.day||weekday(d.date),"Shift":shift,"Type":(source["Monthly Employee Schedule"]?.employees||[]).find(x=>x.name===employee)?.type||""});
    });
+   const dayName=d.day||weekday(d.date);
+   [ [d.amRotation,weeklyAmRows], [d.pmRotation,weeklyPmRows] ].forEach(([rotation,target])=>{
+    if(!rotation||!Array.isArray(rotation.rows))return;
+    rotation.rows.forEach(r=>{const row={Day:dayName,Hour:r.hour||"",Type:r.type||"",RotationStep:r.rotationStep??""};(r.assignments||[]).forEach(a=>{if(a?.position)row[a.position]=a.employee||"";});target.push(row);});
+   });
+   if(d.poolParty&&Array.isArray(d.poolParty.rows))d.poolParty.rows.forEach(r=>{const row={Day:dayName,Hour:r.hour||""};(r.assignments||[]).forEach(a=>{if(a?.position)row[a.position]=a.employee||"";});weeklyPartyRows.push(row);});
   });
   result["Weekly Schedule"]={rows};
+  result["AM Hourly Rotation"]={rows:weeklyAmRows};
+  result["PM Hourly Rotation"]={rows:weeklyPmRows};
+  result["Pool Party Coverage"]={rows:weeklyPartyRows};
  }
  // Monthly schedule: the existing UI expects one employee per row and one date per column.
  const monthly=source["Monthly Employee Schedule"];
@@ -1211,11 +1205,11 @@ function normalizeAppsScriptSheets(payload){
   result["Monthly Employee Schedule"]={rows};
  }
  const am=source["AM Hourly Rotation"],pm=source["PM Hourly Rotation"];
- if(am)result["AM Hourly Rotation"]={rows:toRotationRows(am)};
- if(pm)result["PM Hourly Rotation"]={rows:toRotationRows(pm)};
+ if(am&&!result["AM Hourly Rotation"])result["AM Hourly Rotation"]={rows:toRotationRows(am)};
+ if(pm&&!result["PM Hourly Rotation"])result["PM Hourly Rotation"]={rows:toRotationRows(pm)};
  // Keep the separate party-coverage sheet available for any view that reads it.
  const party=source["Pool Party Coverage"];
- if(party&&Array.isArray(party.rows)){
+ if(party&&Array.isArray(party.rows)&&!result["Pool Party Coverage"]){
   const day=weekday(party.date||source.selectedDate);
   result["Pool Party Coverage"]={rows:party.rows.map(r=>{
    const row={Day:day,Hour:r.hour||""};
@@ -1267,7 +1261,7 @@ async function fetchData(){
   const required=["Weekly Schedule","AM Hourly Rotation","PM Hourly Rotation"];
   const missing=required.filter(k=>!sheets[k]);if(missing.length)throw Error("Apps Script response is missing: "+missing.join(", ")+".");
   rootData=response;echoData=response.data||response;sheetMap=sheets;
-  weekStartISO=response["Weekly Schedule"]?.weekStarting||mondayISO(selectedDateISO);
+  weekStartISO=mondayISO(selectedDateISO);
   renderScheduleWeek();allRows=getAllAssignments();employees=parseEmployees();
   const day=selectedDayName();$("daySelect").value=day;populateTimes(holdSelection);
   if(boardMode==="LIVE"){
