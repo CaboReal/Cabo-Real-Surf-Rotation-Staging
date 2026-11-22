@@ -1509,7 +1509,15 @@ async function fetchData(){
  let phase="requesting Google Apps Script";
  try{
   const url=SCRIPT_URL+"?date="+encodeURIComponent(selectedDateISO)+"&_="+Date.now();
-  const res=await fetch(url,{method:"GET",cache:"no-store"});
+  const controller=new AbortController();
+  const timeoutId=setTimeout(()=>controller.abort(),20000);
+  let res;
+  try{
+   res=await fetch(url,{method:"GET",cache:"no-store",signal:controller.signal});
+  }catch(fetchError){
+   if(fetchError&&fetchError.name==="AbortError")throw Error("Apps Script timed out after 20 seconds. Check the Apps Script Executions log.");
+   throw Error("Could not reach Apps Script: "+(fetchError?.message||String(fetchError)));
+  }finally{clearTimeout(timeoutId)}
   if(!res.ok)throw Error("Apps Script request failed (HTTP "+res.status+").");
   phase="reading Apps Script JSON";
   const response=await res.json();
@@ -1531,7 +1539,7 @@ async function fetchData(){
   const sourceStamp=response.timestamp||response.generatedAt||response.data?.generatedAt,sourceTime=sourceStamp?new Date(sourceStamp):new Date();
   const displayedTime=Number.isNaN(sourceTime.getTime())?timeText():new Intl.DateTimeFormat("en-US",{timeZone:CABO_TZ,hour:"numeric",minute:"2-digit",hour12:true}).format(sourceTime);
   $("updatedLabel").textContent="Updated "+displayedTime+" Cabo time";
- }catch(e){if(requestSequence!==fetchSequence)return;console.error("Cabo Real roster error during "+phase+":",e);connected(false,"Apps Script connection error");$("updatedLabel").textContent="NOT REFRESHED · Apps Script connection failed"}
+ }catch(e){if(requestSequence!==fetchSequence)return;console.error("Cabo Real roster error during "+phase+":",e);connected(false,"Apps Script connection error");$("updatedLabel").textContent="NOT REFRESHED · "+(e?.message||"Apps Script connection failed")}
 }
 function tick(){
  const p=parts();$("liveClock").textContent=timeText();$("dateLabel").textContent=`${p.weekday} · ${p.month} ${p.day} · Cabo time`;const open=currentHour()>=7&&currentHour()<17;$("operatingStatus").textContent=open?"Club operating hours":"Club currently closed";
