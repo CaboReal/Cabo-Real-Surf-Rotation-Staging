@@ -400,7 +400,7 @@ header .brand{margin-bottom:8px}
 .week-day-shift{display:inline-block;background:#292b63;color:#d8d9ff;border-radius:12px;padding:8px 12px;font-weight:850;font-size:.82rem}.week-day-shift.shift-am{background:#e94d15;color:#fff}.week-day-shift.shift-pm{background:#292b63;color:#d8d9ff}
 .week-assignment-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .week-assignment-card{border-radius:14px;overflow:hidden;min-width:0;color:#eaf5f8;background:#14794b}
-.week-assignment-card.missing{background:#475569;color:#f1f5f9}.week-assignment-card.missing .week-assignment-time,.week-assignment-card.missing .week-assignment-subtitle{color:#e2e8f0}.week-assignment-card.blue{background:#195caf}.week-assignment-card.green{background:#168451}.week-assignment-card.orange{background:#e94d15}.week-assignment-card.lunch{background:#d1d5db;color:#25313a}.week-assignment-card.lunch .week-assignment-time,.week-assignment-card.lunch .week-assignment-subtitle{color:#4b5560}
+.week-assignment-card.missing{background:#475569;color:#f1f5f9}.week-assignment-card.missing .week-assignment-time,.week-assignment-card.missing .week-assignment-subtitle{color:#e2e8f0}.week-assignment-card.blue{background:#195caf}.week-assignment-card.green{background:#168451}.week-assignment-card.orange{background:#e94d15}.week-assignment-card.white{background:#ffffff;color:#172b32;border:2px solid #ffffff}.week-assignment-card.white .week-assignment-time,.week-assignment-card.white .week-assignment-subtitle{color:#40535a}.week-assignment-card.lunch{background:#d1d5db;color:#25313a}.week-assignment-card.lunch .week-assignment-time,.week-assignment-card.lunch .week-assignment-subtitle{color:#4b5560}
 .week-assignment-time{padding:12px 14px 2px;font-size:.83rem;font-weight:800;color:#d5e9f3}
 .week-assignment-title{padding:0 14px;font-size:1rem;font-weight:950;line-height:1.2}
 .week-assignment-subtitle{padding:6px 14px 14px;font-size:.88rem;color:#d8e9ef}
@@ -796,7 +796,7 @@ header .brand{margin-bottom:8px}
   <div class="team-caption"><strong>Whole team</strong> · switch between the current week and the monthly schedule. In MONTH, use the week dropdown to show one week at a time. Tap a name to highlight their row.</div>
   <div class="team-view-toggle" role="group" aria-label="Schedule view"><button type="button" class="team-view-btn active" data-team-view="week">WEEK</button><button type="button" class="team-view-btn" data-team-view="month">MONTH</button></div>
   <div id="teamMonthWeekFilter" class="team-month-week-filter hidden"><label for="teamMonthSelect">Month</label><select id="teamMonthSelect" aria-label="Select a month in the monthly schedule"></select><label for="teamWeekSelect">Show week</label><select id="teamWeekSelect" aria-label="Select a week in the monthly schedule"></select></div>
-  <div id="teamSummary" class="muted"></div><div id="teamTable" class="table-wrap"></div><div class="audit-panel"><h3>Schedule & Operations History</h3><div class="muted" style="font-size:.8rem;margin-bottom:8px">Published weeks are preserved automatically once all seven days have complete crew assignments. Supervisor changes are recorded separately.</div><div id="operationsLog"><div class="audit-empty">Loading operations history…</div></div></div><div class="team-caption" id="teamHoursNote">AM 7:00 AM–3:00 PM · PM 11:00 AM–7:00 PM · Each shift is 8 hours, including a 1-hour paid lunch.</div>
+  <div id="teamSummary" class="muted"></div><div id="teamTable" class="table-wrap"></div><div class="audit-panel"><h3>Schedule & Operations History</h3><div class="muted" style="font-size:.8rem;margin-bottom:8px">Published weeks are preserved automatically once all seven days have complete crew assignments. Supervisor changes are recorded separately.</div><div id="operationsLog"><div class="audit-empty">Loading operations history…</div></div></div><div class="team-caption" id="teamHoursNote">AM 7:00 AM–3:00 PM · PM 9:00 AM–5:00 PM · Each shift is 8 hours, including a 1-hour paid lunch.</div>
 </section>
 </main>
 <footer><span>Staff Rotation · Cabo Real Surf Club</span><span id="updatedLabel">Waiting for first data refresh</span></footer>
@@ -1000,7 +1000,7 @@ const partyCoverageFor=(day,h)=>{
  const board=["Board Room A","Board Room B","Board Room C"].map(pick);
  const all=[...pool,...tower,...board];
  if(all.some(n=>!n)||new Set(all.map(normalize)).size!==10)return null;
- return {pool,tower,board,positions:all,coreShift:h===11?"AM":"PM",extraShift:h===11?"PM":"AM"};
+ return {pool,tower,board,positions:all,coreShift:"PM",extraShift:"AM"};
 };
 function shiftStatusForHour(h){return h===7?"Opening":h===16?"Closing":null}
 function makeShiftStatusCard(label){const card=document.createElement("article");card.className="assignment-card white-status";card.innerHTML=`<div class="assignment-head"><span>•</span><div><b>${label.toUpperCase()}</b><small>Club operations</small></div></div><div class="assignment-name">${label}</div>`;return card}
@@ -1052,8 +1052,8 @@ function weeklyScheduleRows(){return parseSheet("Weekly Schedule").map(r=>({
  type:String(field(r,["Employment Type","Type"])||"").trim(),
  day:String(field(r,["Day","Weekday"])||"").trim(),
  shift:String(field(r,["Shift","Shift Type"])||"").trim(),
- start:String(field(r,["Start","Start Time"])||(/^(am|am crew|morning)$/i.test(String(field(r,["Shift","Shift Type"])||"").trim())?"7:00 AM":/^(pm|pm crew|afternoon)$/i.test(String(field(r,["Shift","Shift Type"])||"").trim())?"11:00 AM":"")).trim(),
- end:String(field(r,["End","End Time"])||(/^(am|am crew|morning)$/i.test(String(field(r,["Shift","Shift Type"])||"").trim())?"3:00 PM":/^(pm|pm crew|afternoon)$/i.test(String(field(r,["Shift","Shift Type"])||"").trim())?"7:00 PM":"")).trim(),
+ start:String(field(r,["Start","Start Time"])||(/^(am|am crew|morning)$/i.test(String(field(r,["Shift","Shift Type"])||"").trim())?"7:00 AM":/^(pm|pm crew|afternoon)$/i.test(String(field(r,["Shift","Shift Type"])||"").trim())?"9:00 AM":"")).trim(),
+ end:String(field(r,["End","End Time"])||(/^(am|am crew|morning)$/i.test(String(field(r,["Shift","Shift Type"])||"").trim())?"3:00 PM":/^(pm|pm crew|afternoon)$/i.test(String(field(r,["Shift","Shift Type"])||"").trim())?"5:00 PM":"")).trim(),
  notes:String(field(r,["Notes","Note"])||"").trim()
 })).filter(r=>r.employee&&r.day&&r.shift)}
 function weeklyRows(){return weeklyScheduleRows().filter(r=>! /^(off|day off|days off)$/i.test(r.shift))}
@@ -1091,9 +1091,20 @@ function renderWeek(){
  );
 
  const positionFor=(d,shift,h,employee)=>{
+  // Opening (7 AM) and closing (4 PM) are shared staff duties. Display them
+  // as white cards only for employees explicitly listed in that hour's duty row.
+  if(h===7||h===16){
+   const duty=h===7?"Opening Duty":"Closing Duty";
+   const dutyRow=(allRows||[]).find(x=>normalize(x.day)===normalize(d)&&hourStart(x.time)===h);
+   const dutyNames=splitNames(dutyRow?.positions?.[duty]||"");
+   if(dutyNames.some(n=>normalize(n)===normalize(employee))){
+    return {title:h===7?"OPENING DUTIES":"CLOSING DUTIES",subtitle:h===7?"Staff duty · 7:00–8:00 AM":"Staff duty · 4:00–5:00 PM",kind:"white"};
+   }
+   return {title:"DUTY NOT ASSIGNED",subtitle:"No opening/closing assignment found for this employee",kind:"missing"};
+  }
   // Pool-party coverage is a separate 10-person allocation and must take priority
   // over the standard five-person rotation.
-  if(h===11||h===13){
+  if(h===12){
    const c=partyCoverageFor(d,h);
    if(c){
     const pool=c.pool, tower=c.tower, board=c.board;
@@ -1137,7 +1148,7 @@ function renderWeek(){
    const time=document.createElement("div");time.className="week-assignment-time";time.textContent=`${fullHour(h)}–${fullHour(h+1)}`;
    const label=document.createElement("div");label.className="week-assignment-title";
    const sub=document.createElement("div");sub.className="week-assignment-subtitle";
-   if((/^AM/i.test(r.shift)&&h===12)||(/^PM/i.test(r.shift)&&h===14)){
+   if((/^AM/i.test(r.shift)&&h===11)||(/^PM/i.test(r.shift)&&h===13)){
     card.classList.add("lunch");label.textContent="LUNCH BREAK";sub.textContent="Paid lunch break";
    }else{
     const position=positionFor(r.day,/^AM/i.test(r.shift)?"AM":"PM",h,name);
@@ -1278,8 +1289,12 @@ function renderSchedule(){
   const tdSession=document.createElement("td");tdSession.className="session-cell";tdSession.textContent=shiftStatusForHour(start)||sessionNameFor(day,r.time)||"—";tr.appendChild(tdSession);
   const p=r.positions||{},vals=Array(10).fill("");
   if(shiftStatusForHour(start)){
-   const dutyNames=splitNames(p["Opening Duty"]||p["Closing Duty"]||"");
-   const dutyTd=document.createElement("td");dutyTd.colSpan=10;dutyTd.textContent=dutyNames.length?dutyNames.join(" · "):"Opening/closing duties not published";tr.appendChild(dutyTd);body.appendChild(tr);return;
+   const isOpening=start===7;
+   const dutyLabel=isOpening?"Opening duties":"Closing duties";
+   const dutyNames=splitNames(p[isOpening?"Opening Duty":"Closing Duty"]||"");
+   const dutyTd=document.createElement("td");dutyTd.colSpan=10;
+   dutyTd.textContent=dutyNames.length?`${dutyLabel}: ${dutyNames.join(" · ")}`:dutyLabel;
+   tr.appendChild(dutyTd);body.appendChild(tr);return;
   }
   else if(partyHour){
    const coverage=partyCoverageFor(day,start);
