@@ -400,7 +400,7 @@ header .brand{margin-bottom:8px}
 .week-day-shift{display:inline-block;background:#292b63;color:#d8d9ff;border-radius:12px;padding:8px 12px;font-weight:850;font-size:.82rem}.week-day-shift.shift-am{background:#e94d15;color:#fff}.week-day-shift.shift-pm{background:#292b63;color:#d8d9ff}
 .week-assignment-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .week-assignment-card{border-radius:14px;overflow:hidden;min-width:0;color:#eaf5f8;background:#14794b}
-.week-assignment-card.missing{background:#475569;color:#f1f5f9}.week-assignment-card.missing .week-assignment-time,.week-assignment-card.missing .week-assignment-subtitle{color:#e2e8f0}.week-assignment-card.blue{background:#195caf}.week-assignment-card.green{background:#168451}.week-assignment-card.orange{background:#e94d15}.week-assignment-card.white{background:#ffffff;color:#172b32;border:2px solid #ffffff}.week-assignment-card.white .week-assignment-time,.week-assignment-card.white .week-assignment-subtitle{color:#40535a}.week-assignment-card.lunch{background:#d1d5db;color:#25313a}.week-assignment-card.lunch .week-assignment-time,.week-assignment-card.lunch .week-assignment-subtitle{color:#4b5560}
+.week-assignment-card.missing{background:#475569;color:#f1f5f9}.week-assignment-card.off{background:#ffffff;color:#172b32;border:2px solid #ffffff}.week-assignment-card.off .week-assignment-time,.week-assignment-card.off .week-assignment-subtitle{color:#40535a}.week-assignment-card.missing .week-assignment-time,.week-assignment-card.missing .week-assignment-subtitle{color:#e2e8f0}.week-assignment-card.blue{background:#195caf}.week-assignment-card.green{background:#168451}.week-assignment-card.orange{background:#e94d15}.week-assignment-card.white{background:#ffffff;color:#172b32;border:2px solid #ffffff}.week-assignment-card.white .week-assignment-time,.week-assignment-card.white .week-assignment-subtitle{color:#40535a}.week-assignment-card.lunch{background:#d1d5db;color:#25313a}.week-assignment-card.lunch .week-assignment-time,.week-assignment-card.lunch .week-assignment-subtitle{color:#4b5560}
 .week-assignment-time{padding:12px 14px 2px;font-size:.83rem;font-weight:800;color:#d5e9f3}
 .week-assignment-title{padding:0 14px;font-size:1rem;font-weight:950;line-height:1.2}
 .week-assignment-subtitle{padding:6px 14px 14px;font-size:.88rem;color:#d8e9ef}
@@ -408,7 +408,7 @@ header .brand{margin-bottom:8px}
 @media(max-width:520px){#weekTable{gap:12px}.week-day-card{padding:12px;border-radius:18px}.week-assignment-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.week-assignment-time{font-size:.75rem;padding:10px 10px 2px}.week-assignment-title{font-size:.88rem;padding:0 10px}.week-assignment-subtitle{font-size:.78rem;padding:6px 10px 12px}.week-day-head h3{font-size:.95rem}.week-day-shift{font-size:.73rem;padding:7px 9px}}
 
 /* Final user-requested styling refinements: match AM badge, tighten roster and rotation table. */
-.week-day-shift.shift-am{background:#574318;color:#ffe49a}
+.week-day-shift.shift-am{background:#574318;color:#ffe49a}.week-day-shift.shift-off{background:#ffffff;color:#172b32}
 .team-grid th:first-child,.team-grid td:first-child{width:19%;padding-left:5px;padding-right:1px}
 .team-grid th:nth-child(2),.team-grid td:nth-child(2){padding-left:0}
 .schedule-table table{min-width:0!important;width:100%;table-layout:fixed;font-size:.68rem}
@@ -1059,16 +1059,18 @@ function weeklyScheduleRows(){return parseSheet("Weekly Schedule").map(r=>({
 function weeklyRows(){return weeklyScheduleRows().filter(r=>! /^(off|day off|days off)$/i.test(r.shift))}
 function renderWeek(){
  const name=$("weekEmployee").value,day=$("weekDay").value;
- const all=weeklyRows().filter(r=>normalize(r.employee)===normalize(name));
- const rows=all.filter(r=>!day||normalize(r.day)===normalize(day)).sort((a,b)=>DAYS.indexOf(a.day)-DAYS.indexOf(b.day));
- const uniqueDays=[...new Set(all.map(r=>r.day))];
- const off=DAYS.filter(d=>!uniqueDays.some(x=>normalize(x)===normalize(d)));
- $("weekSummary").textContent=name?`${name} · ${all.length} scheduled shift(s) · ${all.length*8} paid hours/week · ${off.length} day(s) off${off.length?": "+off.join(", "):""}`:"Choose an employee.";
+ // Keep OFF rows: My Week must always render all seven weekdays, not only days with shifts.
+ const all=weeklyScheduleRows().filter(r=>normalize(r.employee)===normalize(name));
+ const offRows=all.filter(r=>/^(off|day off|days off)$/i.test(r.shift));
+ const scheduledRows=all.filter(r=>r.shift&&!/^(off|day off|days off)$/i.test(r.shift));
+ const daysToShow=day?[DAYS.find(d=>normalize(d)===normalize(day))||day]:DAYS;
+ const rows=daysToShow.map(d=>({day:d,row:all.find(r=>normalize(r.day)===normalize(d))||null}));
+ const missingDays=rows.filter(x=>!x.row).map(x=>x.day);
+ const offDays=offRows.map(r=>r.day).filter(d=>DAYS.some(x=>normalize(x)===normalize(d)));
+ $("weekSummary").textContent=name?`${name} · ${scheduledRows.length} scheduled shift(s) · ${scheduledRows.length*8} paid hours/week · ${offDays.length} day(s) off${offDays.length?": "+DAYS.filter(d=>offDays.some(x=>normalize(x)===normalize(d))).join(", "):""}${missingDays.length?` · ${missingDays.length} day(s) missing schedule data`:""}`:"Choose an employee.";
  const host=$("weekTable");host.innerHTML="";
- if(!rows.length){host.innerHTML='<div class="empty-state">No scheduled shift found for this employee and filter.</div>';return}
+ if(!name){host.innerHTML='<div class="empty-state">Choose an employee to view the weekly schedule.</div>';return}
  const roles=[
-  // The five regular-hour rotation slots map to these five operational posts.
-  // Source rotation slots 2–4 are NOT pool positions outside party hours.
   {key:"Surf Coach Zone 1",aliases:["Surf Coach Zone 1","Pool Pusher (Zone 1)","Zone 1"],title:"SURF COACH",subtitle:"Zone 1 · left side",kind:"blue"},
   {key:"Surf Coach Zone 5",aliases:["Surf Coach Zone 5","Pool Catcher (Zone 5)","Zone 5"],title:"SURF COACH",subtitle:"Zone 5 · right side",kind:"blue"},
   {key:"Control Tower A",aliases:["Control Tower A","Tower A","Control Tower","Surf Coach Zone 4","Zone 4"],title:"CONTROL TOWER",subtitle:"Tower A",kind:"orange"},
@@ -1076,38 +1078,22 @@ function renderWeek(){
   {key:"Board Room B",aliases:["Board Room B","Surf Coach Zone 2","Zone 2"],title:"BOARD ROOM B",subtitle:"Check in / check out",kind:"green"}
  ];
  const sheetRows=sheetName=>parseSheet(sheetName);
- const rowFor=(sheetName,d,h)=>sheetRows(sheetName).find(x=>
-  normalize(field(x,["Day","Weekday","Day Name"]))===normalize(d)&&
-  hourStart(field(x,["Hour","Time","Time Slot","Rotation","Pool Party Hour"]))===h
- );
- const weeklyCrewFor=(d,shift)=>weeklyScheduleRows()
-  .filter(x=>normalize(x.day)===normalize(d)&&normalize(x.shift)===normalize(shift))
-  .map(x=>x.employee)
-  .filter((n,i,a)=>n&&a.findIndex(v=>normalize(v)===normalize(n))===i)
-  .sort((a,b)=>STAFF_NAMES.findIndex(n=>normalize(n)===normalize(a))-STAFF_NAMES.findIndex(n=>normalize(n)===normalize(b)));
  const poolPartyFor=(d,h)=>sheetRows("Pool Party Coverage").find(x=>
   normalize(field(x,["Day","Weekday","Day Name"]))===normalize(d)&&
   hourStart(field(x,["Pool Party Hour","Hour","Time","Time Slot"]))===h
  );
-
  const positionFor=(d,shift,h,employee)=>{
-  // Opening (7 AM) and closing (4 PM) are shared staff duties. Display them
-  // as white cards only for employees explicitly listed in that hour's duty row.
   if(h===7||h===16){
    const duty=h===7?"Opening Duty":"Closing Duty";
    const dutyRow=(allRows||[]).find(x=>normalize(x.day)===normalize(d)&&hourStart(x.time)===h);
    const dutyNames=splitNames(dutyRow?.positions?.[duty]||"");
-   if(dutyNames.some(n=>normalize(n)===normalize(employee))){
-    return {title:h===7?"OPENING DUTIES":"CLOSING DUTIES",subtitle:h===7?"Staff duty · 7:00–8:00 AM":"Staff duty · 4:00–5:00 PM",kind:"white"};
-   }
+   if(dutyNames.some(n=>normalize(n)===normalize(employee)))return {title:h===7?"OPENING DUTIES":"CLOSING DUTIES",subtitle:h===7?"Staff duty · 7:00–8:00 AM":"Staff duty · 4:00–5:00 PM",kind:"white"};
    return {title:"DUTY NOT ASSIGNED",subtitle:"No opening/closing assignment found for this employee",kind:"missing"};
   }
-  // Pool-party coverage is a separate 10-person allocation and must take priority
-  // over the standard five-person rotation.
   if(h===12){
    const c=partyCoverageFor(d,h);
    if(c){
-    const pool=c.pool, tower=c.tower, board=c.board;
+    const pool=c.pool,tower=c.tower,board=c.board;
     const pi=pool.findIndex(n=>normalize(n)===normalize(employee));
     if(pi>=0)return {title:"SURF COACH",subtitle:`Zone ${pi+1}${pi===0?" · left side":pi===4?" · right side":""}`,kind:"blue"};
     const ti=tower.findIndex(n=>normalize(n)===normalize(employee));
@@ -1115,47 +1101,49 @@ function renderWeek(){
     const bi=board.findIndex(n=>normalize(n)===normalize(employee));
     if(bi>=0)return {title:`BOARD ROOM ${String.fromCharCode(65+bi)}`,subtitle:"Check in / check out",kind:"green"};
    }
-   // Party hours are separate from the regular rotation. If the date has no
-   // published 10-person party roster, show a clear data warning, not a fake post.
    return {title:"POOL PARTY COVERAGE",subtitle:"Party assignments not published for this date",kind:"missing"};
   }
-  // Use the same normalized, corrected rotation that feeds the Live Board.
-  // This prevents My Week from reading the raw source-zone labels and showing
-  // Zone 2–4 as surf-coach posts during ordinary hours.
   const normalizedRow=(allRows||[]).find(x=>normalize(x.day)===normalize(d)&&hourStart(x.time)===h);
   if(normalizedRow){
    const assigned=regularPositionValues(normalizedRow);
    const roleIndex=assigned.findIndex(v=>splitNames(v).some(n=>normalize(n)===normalize(employee)));
-   if(roleIndex>=0){
-    const role=roles[roleIndex];
-    return {title:role.title,subtitle:role.subtitle,kind:role.kind};
-   }
+   if(roleIndex>=0){const role=roles[roleIndex];return {title:role.title,subtitle:role.subtitle,kind:role.kind};}
   }
-  // Do not invent a position when the API has no assignment for this hour.
-  // The weekly view must mirror the published hourly rotation exactly.
   return null;
  };
- rows.forEach(r=>{
+ rows.forEach(({day:d,row:r})=>{
   const section=document.createElement("article");section.className="week-day-card";
   const head=document.createElement("div");head.className="week-day-head";
-  const title=document.createElement("h3");title.textContent=r.day;head.appendChild(title);
-  const badge=document.createElement("span");badge.className="week-day-shift "+(/^AM/i.test(r.shift)?"shift-am":"shift-pm");badge.textContent=`${r.shift} · ${r.start} – ${r.end}`;head.appendChild(badge);section.appendChild(head);
+  const title=document.createElement("h3");title.textContent=d;head.appendChild(title);
+  const badge=document.createElement("span");badge.className="week-day-shift";
+  if(!r){badge.textContent="SCHEDULE NOT FOUND";}
+  else if(/^(off|day off|days off)$/i.test(r.shift)){badge.textContent="DAY OFF";badge.classList.add("shift-off");}
+  else{badge.classList.add(/^AM/i.test(r.shift)?"shift-am":"shift-pm");badge.textContent=`${r.shift} · ${r.start} – ${r.end}`;}
+  head.appendChild(badge);section.appendChild(head);
   const grid=document.createElement("div");grid.className="week-assignment-grid";
-  const startHour=hourStart(r.start),endHour=hourStart(r.end);
-  const fullHour=x=>{const hh=((x%24)+24)%24;return `${hh%12||12}:00 ${hh<12?"AM":"PM"}`};
-  for(let h=startHour;h<endHour;h++){
-   const card=document.createElement("article");card.className="week-assignment-card";
-   const time=document.createElement("div");time.className="week-assignment-time";time.textContent=`${fullHour(h)}–${fullHour(h+1)}`;
-   const label=document.createElement("div");label.className="week-assignment-title";
-   const sub=document.createElement("div");sub.className="week-assignment-subtitle";
-   if((/^AM/i.test(r.shift)&&h===11)||(/^PM/i.test(r.shift)&&h===13)){
-    card.classList.add("lunch");label.textContent="LUNCH BREAK";sub.textContent="Paid lunch break";
-   }else{
-    const position=positionFor(r.day,/^AM/i.test(r.shift)?"AM":"PM",h,name);
-    if(position){card.classList.add(position.kind);label.textContent=position.title;sub.textContent=position.subtitle}
-    else{card.classList.add("missing");label.textContent="CHECK SCHEDULE";sub.textContent="No hourly or weekly shift assignment found"}
-   }
+  if(!r||/^(off|day off|days off)$/i.test(r.shift)||!/^am|^pm/i.test(r.shift)){
+   const card=document.createElement("article");card.className="week-assignment-card "+(!r?"missing":"off");
+   const time=document.createElement("div");time.className="week-assignment-time";time.textContent="ALL DAY";
+   const label=document.createElement("div");label.className="week-assignment-title";label.textContent=!r?"SCHEDULE NOT FOUND":/^(off|day off|days off)$/i.test(r.shift)?"DAY OFF":"SHIFT NOT RECOGNIZED";
+   const sub=document.createElement("div");sub.className="week-assignment-subtitle";sub.textContent=!r?"No employee/day row was returned by Apps Script":/^(off|day off|days off)$/i.test(r.shift)?"No shift scheduled":"Check the employee's shift entry in Google Sheets";
    card.append(time,label,sub);grid.appendChild(card);
+  }else{
+   const startHour=hourStart(r.start),endHour=hourStart(r.end);
+   const fullHour=x=>{const hh=((x%24)+24)%24;return `${hh%12||12}:00 ${hh<12?"AM":"PM"}`};
+   for(let h=startHour;h<endHour;h++){
+    const card=document.createElement("article");card.className="week-assignment-card";
+    const time=document.createElement("div");time.className="week-assignment-time";time.textContent=`${fullHour(h)}–${fullHour(h+1)}`;
+    const label=document.createElement("div");label.className="week-assignment-title";
+    const sub=document.createElement("div");sub.className="week-assignment-subtitle";
+    if((/^AM/i.test(r.shift)&&h===11)||(/^PM/i.test(r.shift)&&h===13)){
+     card.classList.add("lunch");label.textContent="LUNCH BREAK";sub.textContent="Paid lunch break";
+    }else{
+     const position=positionFor(d,/^AM/i.test(r.shift)?"AM":"PM",h,name);
+     if(position){card.classList.add(position.kind);label.textContent=position.title;sub.textContent=position.subtitle;}
+     else{card.classList.add("missing");label.textContent="CHECK SCHEDULE";sub.textContent="No hourly position assignment found for this hour";}
+    }
+    card.append(time,label,sub);grid.appendChild(card);
+   }
   }
   section.appendChild(grid);host.appendChild(section);
  });
