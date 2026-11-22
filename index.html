@@ -877,23 +877,21 @@ function field(o,alts){const keys=Object.keys(o||{});for(const a of alts){const 
 function canonicalStaffName(value){const name=String(value??"").trim();const key=normalize(name);const canonical=key==="bost"?"Pollo":key==="chino"?"Bernardo":name;return STAFF_NAMES.find(n=>normalize(n)===normalize(canonical))||""}
 function splitNames(v){return String(v??"").split(/[,;\n&]+/).map(x=>canonicalStaffName(x)).filter(Boolean)}
 function rowToAssignment(r,source){
- const day=String(field(r,["Day","Weekday"])||"").trim(),time=String(field(r,["Hour","Time","Time Slot","Rotation"])||"").trim();
- const pick=alts=>String(field(r,alts)||"").trim();
- const positions={
-  "Pool Pusher (Zone 1)":pick(["Pool Pusher (Zone 1)","Pool Pusher","Pusher","Surf Coach Zone 1","Zone 1"]),
-  "Pool Catcher (Zone 5)":pick(["Pool Catcher (Zone 5)","Pool Catcher","Catcher","Surf Coach Zone 5","Zone 5"]),
-  "Control Tower":pick(["Control Tower","Control Tower A","Tower A","Tower"]),
-  "Board Room A":pick(["Board Room A","Board Room A Staff"]),
-  "Board Room B":pick(["Board Room B","Board Room B Staff"]),
-  "Surf Coach Zone 1":pick(["Surf Coach Zone 1","Surf Coach · Zone 1","Pool Pusher (Zone 1)","Pool Pusher","Pusher","Zone 1"]),
-  "Surf Coach Zone 2":pick(["Surf Coach Zone 2","Surf Coach · Zone 2","Zone 2"]),
-  "Surf Coach Zone 3":pick(["Surf Coach Zone 3","Surf Coach · Zone 3","Zone 3"]),
-  "Surf Coach Zone 4":pick(["Surf Coach Zone 4","Surf Coach · Zone 4","Zone 4"]),
-  "Surf Coach Zone 5":pick(["Surf Coach Zone 5","Surf Coach · Zone 5","Pool Catcher (Zone 5)","Pool Catcher","Catcher","Zone 5"]),
-  "Control Tower A":pick(["Control Tower A","Tower A","Control Tower"]),
-  "Control Tower B":pick(["Control Tower B","Tower B"]),
-  "Board Room C":pick(["Board Room C","Board Room C Staff"])
- };
+ const day=String(field(r,["Day","Weekday"])||"").trim();
+ const time=String(field(r,["Hour","Time","Time Slot","Rotation"])||"").trim();
+ const canonical=[
+  "Surf Coach Zone 1","Surf Coach Zone 2","Surf Coach Zone 3","Surf Coach Zone 4","Surf Coach Zone 5",
+  "Control Tower A","Control Tower B","Board Room A","Board Room B","Board Room C"
+ ];
+ const positions={};
+ canonical.forEach(position=>{
+  const value=field(r,[position]);
+  positions[position]=String(value||"").trim();
+ });
+ const type=String(field(r,["Type","Session","Shift"])||"").trim();
+ if(/^(opening|closing)$/i.test(type)){
+  positions[type.toLowerCase()==="opening"?"Opening Duty":"Closing Duty"]=String(field(r,["Opening Duty","Closing Duty","Assignments"])||"").trim();
+ }
  return {day,time,positions,source,raw:r};
 }
 function isEmployeeOff(day,name){
@@ -906,30 +904,56 @@ function scheduledNames(day,value){
  return splitNames(value).filter(name=>!isEmployeeOff(day,name));
 }
 function getAllAssignments(){
- // The Apps Script API already publishes the validated, fully calculated hourly
- // rotations. Preserve those assignments exactly; do not regenerate or reshuffle them.
  const raw=Object.keys(sheetMap)
   .filter(n=>["am hourly rotation","pm hourly rotation"].includes(normalize(n)))
   .flatMap(n=>parseSheet(n).map(r=>rowToAssignment(r,normalize(n).startsWith("am")?"AM":"PM")))
   .filter(r=>r.day&&r.time);
  const grouped=new Map();
  raw.forEach(r=>{
-  const h=hourStart(r.time),key=normalize(r.day)+"|"+h;
-  if(!grouped.has(key)){grouped.set(key,{...r,sourceRows:[r]});return;}
-  const g=grouped.get(key);g.sourceRows.push(r);
-  // At lunch, use the crew that is working; at pool-party hours, retain both
-  // source rows (party assignments come from the dedicated coverage data).
-  const preferred=h===12?"PM":h===14?"AM":null;
-  if(preferred&&r.source===preferred){
-   const sources=g.sourceRows;Object.assign(g,r);g.sourceRows=sources;
-  }else if(!preferred){
-   Object.keys(g.positions).forEach(k=>{
-    const vals=[...splitNames(g.positions[k]),...splitNames(r.positions[k])];
-    g.positions[k]=[...new Set(vals)].join(", ");
-   });
+  const hour=hourStart(r.time),key=normalize(r.day)+"|"+hour;
+  if(!grouped.has(key)){
+   grouped.set(key,{...r,sourceRows:[r],assignmentErrors:[]});
+   return;
   }
+  const g=grouped.get(key);
+  g.sourceRows.push(r);
+  Object.entries(r.positions).forEach(([position,value])=>{
+   const incoming=String(value||"").trim();
+   if(!incoming)return;
+   const existing=String(g.positions[position]||"").trim();
+   if(!existing){g.positions[position]=incoming;return;}
+   const oldNames=splitNames(existing),newNames=splitNames(incoming);
+   const duplicates=newNames.filter(name=>oldNames.some(old=>normalize(old)===normalize(name)));
+   if(oldNames.length&&newNames.length&&!duplicates.length){
+    g.assignmentErrors.push(`${position} is assigned to both ${oldNames.join(", ")} and ${newNames.join(", ")}.`);
+    return;
+   }
+   if(duplicates.length)g.assignmentErrors.push(`${position} appears more than once (${[...oldNames,...newNames].join(", ")}).`);
+  });
  });
- return [...grouped.values()].sort((a,b)=>DAYS.indexOf(a.day)-DAYS.indexOf(b.day)||hourStart(a.time)-hourStart(b.time));
+ return [...grouped.values()].map(row=>{
+  const assigned=[];
+  Object.entries(row.positions).forEach(([position,value])=>{
+   const names=splitNames(value);
+   // Opening and Closing are shared crew duties: all five shift members
+   // correctly receive the same duty label, unlike operational positions.
+   if(!["Opening Duty","Closing Duty"].includes(position)){
+    if(names.length>1)row.assignmentErrors.push(`${position} has ${names.length} employees assigned: ${names.join(", ")}.`);
+    names.forEach(employee=>assigned.push({position,employee}));
+   }
+  });
+  const byEmployee=new Map();
+  assigned.forEach(a=>{
+   const k=normalize(a.employee);
+   if(!byEmployee.has(k))byEmployee.set(k,[]);
+   byEmployee.get(k).push(a.position);
+  });
+  byEmployee.forEach((positions,employee)=>{
+   if(positions.length>1)row.assignmentErrors.push(`${employee} is assigned to multiple positions in the same hour: ${positions.join(", ")}.`);
+  });
+  row.assignmentErrors=[...new Set(row.assignmentErrors)];
+  return row;
+ }).sort((a,b)=>DAYS.indexOf(a.day)-DAYS.indexOf(b.day)||hourStart(a.time)-hourStart(b.time));
 }
 function scheduledCrewForHour(day,h){
  const rows=weeklyScheduleRows().filter(r=>normalize(r.day)===normalize(day)&&! /^(off|day off|days off)$/i.test(r.shift));
@@ -998,7 +1022,10 @@ function renderBoard(){
  fill("boardA",shiftStatus?[]:[party?coverage?.board[0]:regular[3]]);
  fill("boardB",shiftStatus?[]:[party?coverage?.board[1]:regular[4]]);
  const extra=[];
- if(party&&coverage&&!shiftStatus){extra.push(coverage.tower[1],coverage.board[2]);}
+ if(!shiftStatus){
+  if(party&&coverage){extra.push(coverage.tower[1],coverage.board[2]);}
+  else if(row){extra.push(regular[5],regular[6],regular[7],regular[8],regular[9]);}
+ }
  fill("extra",extra);
  const lunchRow=parseSheet("Lunch Coverage").find(r=>
   normalize(field(r,["Day","Weekday","Day Name"]))===normalize(day)&&
@@ -1215,19 +1242,10 @@ function sessionNameFor(day,time){
 function nextRow(day,time){const rows=allRows.filter(r=>normalize(r.day)===normalize(day)).sort((a,b)=>hourStart(a.time)-hourStart(b.time));const i=rows.findIndex(r=>r.time===time||hourStart(r.time)===hourStart(time));return i>=0?rows[i+1]||null:null}
 function regularPositionValues(row){
  const p=row?.positions||{};
- // All ten operational positions are used during ordinary hourly rotations.
- // Keep this order identical to the hourly table and assignment cards.
  return [
-  p["Surf Coach Zone 1"]||p["Pool Pusher (Zone 1)"],
-  p["Surf Coach Zone 5"]||p["Pool Catcher (Zone 5)"],
-  p["Control Tower A"]||p["Control Tower"],
-  p["Board Room A"],
-  p["Board Room B"],
-  p["Surf Coach Zone 2"],
-  p["Surf Coach Zone 3"],
-  p["Surf Coach Zone 4"],
-  p["Control Tower B"],
-  p["Board Room C"]
+  p["Surf Coach Zone 1"],p["Surf Coach Zone 5"],p["Control Tower A"],
+  p["Board Room A"],p["Board Room B"],p["Surf Coach Zone 2"],
+  p["Surf Coach Zone 3"],p["Surf Coach Zone 4"],p["Control Tower B"],p["Board Room C"]
  ].map(v=>splitNames(v).join(", "));
 }
 function assignmentValues(row){return regularPositionValues(row).map(v=>v||"—")}
@@ -1301,7 +1319,6 @@ function cardAssignments(row,day,time){
   const names=splitNames(row?.positions?.[duty]||"");
   return names.map((name,i)=>({title:start===7?"OPENING":"CLOSING",subtitle:`Staff duty · ${start===7?"7:00–8:00 AM":"4:00–5:00 PM"}`,name,color:"white",number:i+1}));
  }
- const special=start===12;
  const defs=[
   {title:"SURF COACH",subtitle:"Zone 1",color:"blue"},
   {title:"SURF COACH",subtitle:"Zone 5",color:"blue"},
@@ -1314,20 +1331,35 @@ function cardAssignments(row,day,time){
   {title:"CONTROL TOWER",subtitle:"Tower B",color:"orange"},
   {title:"BOARD ROOM C",subtitle:"",color:"green"}
  ];
- if(special){
+ const startIsParty=start===12;
+ let values;
+ if(startIsParty){
   const coverage=partyCoverageFor(day,start);
-  if(!coverage)return defs.map((d,i)=>({...d,name:"—",number:i+1}));
+  if(!coverage)return [];
   const pool=coverage.pool,tower=coverage.tower,board=coverage.board;
-  const values=[pool[0],pool[4],tower[0],board[0],board[1],pool[1],pool[2],pool[3],tower[1],board[2]];
-  return defs.map((d,i)=>({...d,name:values[i]||"—",number:i+1}));
+  values=[pool[0],pool[4],tower[0],board[0],board[1],pool[1],pool[2],pool[3],tower[1],board[2]];
+ }else{
+  values=regularPositionValues(row);
  }
- const values=regularPositionValues(row);
- return defs.map((d,i)=>({...d,name:values[i]||"—",number:i+1}));
+ // Only render positions with an actual employee assigned. Single-crew hours
+ // therefore show five cards; overlap and Pool Party show ten.
+ return defs.map((d,i)=>({...d,name:values[i]||"",number:i+1}))
+  .filter(a=>splitNames(a.name).length>0);
 }
 function renderVisualCards(){
  const day=$("daySelect").value,time=$("hourSelect").value,row=findRow(day,time),p=row?.positions||{};
  const assignments=cardAssignments(row,day,time),hostCurrent=document.querySelector(".current-panel .assignment-cards");
- hostCurrent.innerHTML="";hostCurrent.classList.toggle("party-coverage-cards",assignments.length>5);hostCurrent.classList.toggle("opening-closing-cards",hourStart(time)===7||hourStart(time)===16);
+ hostCurrent.innerHTML="";
+ if(row?.assignmentErrors?.length){
+  const warning=document.createElement("div");warning.className="empty-state";warning.textContent="SCHEDULE ERROR · "+row.assignmentErrors.join(" ");hostCurrent.appendChild(warning);
+  hostCurrent.classList.remove("party-coverage-cards","opening-closing-cards");
+  $("currentHourLabel").textContent=row?hourLabel(row.time):"No shift data";
+  $("currentSessionName").textContent="Assignment conflict";
+  const next=nextRow(day,time),nextHost=$("nextHourCards");nextHost.innerHTML="";
+  $("nextHourLabel").textContent=next?hourLabel(next.time):"No next session";
+  $("nextSessionName").textContent=next?(sessionNameFor(day,next.time)||"Session"):"No next session";
+  renderSchedule();return;
+ }hostCurrent.classList.toggle("party-coverage-cards",assignments.length>5);hostCurrent.classList.toggle("opening-closing-cards",hourStart(time)===7||hourStart(time)===16);
  assignments.forEach((a,i)=>hostCurrent.appendChild(makeAssignmentCard(i,a.title,a.subtitle,a.name,false,a.color)));
  $("currentHourLabel").textContent=row?hourLabel(row.time):"No shift data";
  $("currentSessionName").textContent=row?(hourStart(row.time)===7?"Opening":hourStart(row.time)===16?"Closing":(sessionNameFor(day,row.time)||"Session not found")):"—";
@@ -1422,12 +1454,20 @@ function normalizeAppsScriptSheets(payload){
   const weekly=source["Weekly Schedule"]?.days||[];
   return weekly.find(x=>String(x.day||"").toLowerCase()===w)?.date||source.selectedDate||"";
  };
+ const appendAssignment=(row,a)=>{
+  if(!a?.position||!a?.employee)return;
+  const position=String(a.position).trim(),employee=String(a.employee).trim();
+  const current=String(row[position]||"").trim();
+  if(!current){row[position]=employee;return;}
+  const names=current.split(/[,;\\n&]+/).map(x=>x.trim().toLowerCase());
+  if(!names.includes(employee.toLowerCase()))row[position]=current+", "+employee;
+ };
  const toRotationRows=(rotation)=>{
   if(!rotation||!Array.isArray(rotation.rows))return [];
   const day=weekday(rotation.date||source.selectedDate);
   return rotation.rows.map(r=>{
    const row={Day:day,Hour:r.hour||"",Type:r.type||"",RotationStep:r.rotationStep??""};
-   (r.assignments||[]).forEach(a=>{if(a?.position)row[a.position]=a.employee||"";});
+   (r.assignments||[]).forEach(a=>appendAssignment(row,a));
    return row;
   });
  };
@@ -1444,9 +1484,9 @@ function normalizeAppsScriptSheets(payload){
    const dayName=d.day||weekday(d.date);
    [ [d.amRotation,weeklyAmRows], [d.pmRotation,weeklyPmRows] ].forEach(([rotation,target])=>{
     if(!rotation||!Array.isArray(rotation.rows))return;
-    rotation.rows.forEach(r=>{const row={Day:dayName,Hour:r.hour||"",Type:r.type||"",RotationStep:r.rotationStep??""};(r.assignments||[]).forEach(a=>{if(a?.position)row[a.position]=a.employee||"";});target.push(row);});
+    rotation.rows.forEach(r=>{const row={Day:dayName,Hour:r.hour||"",Type:r.type||"",RotationStep:r.rotationStep??""};(r.assignments||[]).forEach(a=>appendAssignment(row,a));target.push(row);});
    });
-   if(d.poolParty&&Array.isArray(d.poolParty.rows))d.poolParty.rows.forEach(r=>{const row={Day:dayName,Hour:r.hour||""};(r.assignments||[]).forEach(a=>{if(a?.position)row[a.position]=a.employee||"";});weeklyPartyRows.push(row);});
+   if(d.poolParty&&Array.isArray(d.poolParty.rows))d.poolParty.rows.forEach(r=>{const row={Day:dayName,Hour:r.hour||""};(r.assignments||[]).forEach(a=>appendAssignment(row,a));weeklyPartyRows.push(row);});
   });
   result["Weekly Schedule"]={rows};
   result["AM Hourly Rotation"]={rows:weeklyAmRows};
