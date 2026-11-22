@@ -42,6 +42,7 @@ main{padding:22px clamp(14px,4vw,42px) 40px;max-width:1500px;margin:auto}.sectio
 .assignment-cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
 .assignment-card{overflow:hidden;border-radius:10px;border:2px solid var(--accent);background:#e9f3f8;color:#081e2b;min-width:0;display:flex;flex-direction:column}
 .assignment-card.green{--accent:#15975a}.assignment-card.blue{--accent:#1267d5}.assignment-card.orange{--accent:#ee531c}.assignment-card.purple{--accent:#7a22cc}.assignment-card.pink{--accent:#d41465}
+.assignment-card.white-status{--accent:#fff;background:#fff;color:#172b35;border-color:#fff}.assignment-card.white-status .assignment-head{background:#fff;color:#172b35}.assignment-card.white-status .assignment-head>span{background:#fff;color:#172b35;border:1px solid #d5dde2}.assignment-card.white-status .assignment-visual{display:none}.assignment-card.white-status .assignment-name{background:#fff;color:#172b35;font-size:1rem;padding:16px 5px}
 .assignment-cards.opening-closing-cards{grid-template-columns:minmax(0,220px);justify-content:center}.assignment-card.white{--accent:#ffffff;background:#ffffff;color:#172b32;border:2px solid #ffffff}.assignment-card.white .assignment-head{background:#ffffff;color:#172b32}.assignment-card.white .assignment-head b,.assignment-card.white .assignment-head small{color:#172b32}.assignment-card.white .assignment-visual{display:none}.assignment-card.white .assignment-name{background:#ffffff;color:#172b32;min-height:30px}
 .assignment-head{display:flex;align-items:center;gap:6px;background:var(--accent);color:white;padding:6px;min-height:50px}
 .assignment-head>span{display:grid;place-items:center;background:#fff;color:var(--accent);font-weight:950;border-radius:50%;width:27px;height:27px;flex:0 0 27px}
@@ -977,6 +978,8 @@ const partyCoverageFor=(day,h)=>{
  if(all.some(n=>!n)||new Set(all.map(normalize)).size!==10)return null;
  return {pool,tower,board,positions:all,coreShift:h===11?"AM":"PM",extraShift:h===11?"PM":"AM"};
 };
+function shiftStatusForHour(h){return h===7?"Opening":h===16?"Closing":null}
+function makeShiftStatusCard(label){const card=document.createElement("article");card.className="assignment-card white-status";card.innerHTML=`<div class="assignment-head"><span>•</span><div><b>${label.toUpperCase()}</b><small>Club operations</small></div></div><div class="assignment-name">${label}</div>`;return card}
 function renderBoard(){
  const day=$("daySelect").value,time=$("hourSelect").value,row=findRow(day,time),h=hourStart(time),p=row?.positions||{};
  const poolImage=$("poolAerialImage");
@@ -985,16 +988,17 @@ function renderBoard(){
   poolImage.src=fiveStaffImage?"pool-aerial.png":"pool-party-aerial.png";
   poolImage.alt=fiveStaffImage?"Five-staff pool layout":"Ten-staff pool layout with five Surf Coach zones, two Control Tower positions and three Board Room positions";
  }
+ const shiftStatus=shiftStatusForHour(h);
  const party=h===12;
  const coverage=party?partyCoverageFor(day,h):null;
  const regular=regularPositionValues(row);
- fill("pusher",[party?coverage?.pool[0]:regular[0]]);
- fill("catcher",[party?coverage?.pool[4]:regular[1]]);
- fill("tower",[party?coverage?.tower[0]:regular[2]]);
- fill("boardA",[party?coverage?.board[0]:regular[3]]);
- fill("boardB",[party?coverage?.board[1]:regular[4]]);
+ fill("pusher",shiftStatus?[]:[party?coverage?.pool[0]:regular[0]]);
+ fill("catcher",shiftStatus?[]:[party?coverage?.pool[4]:regular[1]]);
+ fill("tower",shiftStatus?[]:[party?coverage?.tower[0]:regular[2]]);
+ fill("boardA",shiftStatus?[]:[party?coverage?.board[0]:regular[3]]);
+ fill("boardB",shiftStatus?[]:[party?coverage?.board[1]:regular[4]]);
  const extra=[];
- if(party&&coverage){extra.push(coverage.tower[1],coverage.board[2]);}
+ if(party&&coverage&&!shiftStatus){extra.push(coverage.tower[1],coverage.board[2]);}
  fill("extra",extra);
  const lunchRow=parseSheet("Lunch Coverage").find(r=>
   normalize(field(r,["Day","Weekday","Day Name"]))===normalize(day)&&
@@ -1211,25 +1215,19 @@ function sessionNameFor(day,time){
 function nextRow(day,time){const rows=allRows.filter(r=>normalize(r.day)===normalize(day)).sort((a,b)=>hourStart(a.time)-hourStart(b.time));const i=rows.findIndex(r=>r.time===time||hourStart(r.time)===hourStart(time));return i>=0?rows[i+1]||null:null}
 function regularPositionValues(row){
  const p=row?.positions||{};
- // The rotation export's five slots map to five regular operational posts.
- // Source slot mapping: Zone 1 -> Coach Zone 1; Zone 5 -> Coach Zone 5;
-// Zone 4 -> Tower A; Zone 3 -> Board Room A; Zone 2 -> Board Room B.
- const hasZoneData=[1,2,3,4,5].every(n=>splitNames(p[`Surf Coach Zone ${n}`]).length>0);
- if(hasZoneData){
-  return [
-   p["Surf Coach Zone 1"],
-   p["Surf Coach Zone 5"],
-   p["Surf Coach Zone 4"],
-   p["Surf Coach Zone 3"],
-   p["Surf Coach Zone 2"]
-  ].map(v=>splitNames(v).join(", "));
- }
+ // All ten operational positions are used during ordinary hourly rotations.
+ // Keep this order identical to the hourly table and assignment cards.
  return [
   p["Surf Coach Zone 1"]||p["Pool Pusher (Zone 1)"],
   p["Surf Coach Zone 5"]||p["Pool Catcher (Zone 5)"],
   p["Control Tower A"]||p["Control Tower"],
   p["Board Room A"],
-  p["Board Room B"]
+  p["Board Room B"],
+  p["Surf Coach Zone 2"],
+  p["Surf Coach Zone 3"],
+  p["Surf Coach Zone 4"],
+  p["Control Tower B"],
+  p["Board Room C"]
  ].map(v=>splitNames(v).join(", "));
 }
 function assignmentValues(row){return regularPositionValues(row).map(v=>v||"—")}
@@ -1259,9 +1257,13 @@ function renderSchedule(){
   const tr=document.createElement("tr"),start=hourStart(r.time),partyHour=start===12;
   if(start===hourStart($("hourSelect").value))tr.className="selected";
   const tdTime=document.createElement("td"),b=document.createElement("button");b.textContent=shortHour(r.time);b.onclick=()=>{$("hourSelect").value=r.time;renderAll()};tdTime.appendChild(b);tr.appendChild(tdTime);
-  const tdSession=document.createElement("td");tdSession.className="session-cell";tdSession.textContent=sessionNameFor(day,r.time)||"—";tr.appendChild(tdSession);
+  const tdSession=document.createElement("td");tdSession.className="session-cell";tdSession.textContent=shiftStatusForHour(start)||sessionNameFor(day,r.time)||"—";tr.appendChild(tdSession);
   const p=r.positions||{},vals=Array(10).fill("");
-  if(partyHour){
+  if(shiftStatusForHour(start)){
+   const dutyNames=splitNames(p["Opening Duty"]||p["Closing Duty"]||"");
+   const dutyTd=document.createElement("td");dutyTd.colSpan=10;dutyTd.textContent=dutyNames.length?dutyNames.join(" · "):"Opening/closing duties not published";tr.appendChild(dutyTd);body.appendChild(tr);return;
+  }
+  else if(partyHour){
    const coverage=partyCoverageFor(day,start);
    if(coverage){
     const pool=coverage.pool,tower=coverage.tower,board=coverage.board;
@@ -1278,8 +1280,7 @@ function renderSchedule(){
     }));
    }
   } else {
-   // Regular hours have exactly five staffed posts in the requested order:
-   // Zone 1, Zone 5, Tower A, Board Room A, Board Room B.
+   // Regular hourly rotation uses all ten operational positions.
    regularPositionValues(r).forEach((value,i)=>vals[i]=value||"");
   }
   vals.forEach(value=>{const td=document.createElement("td");td.textContent=value||"";tr.appendChild(td)});
@@ -1295,8 +1296,11 @@ function coverageRowsFor(day,time){
 }
 function cardAssignments(row,day,time){
  const start=hourStart(time);
- if(start===7)return [{title:"OPENING",subtitle:"7:00 AM",name:"",color:"white",number:1}];
- if(start===16)return [{title:"CLOSING",subtitle:"4:00 PM",name:"",color:"white",number:1}];
+ if(start===7||start===16){
+  const duty=start===7?"Opening Duty":"Closing Duty";
+  const names=splitNames(row?.positions?.[duty]||"");
+  return names.map((name,i)=>({title:start===7?"OPENING":"CLOSING",subtitle:`Staff duty · ${start===7?"7:00–8:00 AM":"4:00–5:00 PM"}`,name,color:"white",number:i+1}));
+ }
  const special=start===12;
  const defs=[
   {title:"SURF COACH",subtitle:"Zone 1",color:"blue"},
@@ -1318,7 +1322,7 @@ function cardAssignments(row,day,time){
   return defs.map((d,i)=>({...d,name:values[i]||"—",number:i+1}));
  }
  const values=regularPositionValues(row);
- return defs.slice(0,5).map((d,i)=>({...d,name:values[i]||"—",number:i+1}));
+ return defs.map((d,i)=>({...d,name:values[i]||"—",number:i+1}));
 }
 function renderVisualCards(){
  const day=$("daySelect").value,time=$("hourSelect").value,row=findRow(day,time),p=row?.positions||{};
