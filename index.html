@@ -796,7 +796,7 @@ header .brand{margin-bottom:8px}
   <div class="team-caption"><strong>Whole team</strong> · switch between the current week and the monthly schedule. In MONTH, use the week dropdown to show one week at a time. Tap a name to highlight their row.</div>
   <div class="team-view-toggle" role="group" aria-label="Schedule view"><button type="button" class="team-view-btn active" data-team-view="week">WEEK</button><button type="button" class="team-view-btn" data-team-view="month">MONTH</button></div>
   <div id="teamMonthWeekFilter" class="team-month-week-filter hidden"><label for="teamMonthSelect">Month</label><select id="teamMonthSelect" aria-label="Select a month in the monthly schedule"></select><label for="teamWeekSelect">Show week</label><select id="teamWeekSelect" aria-label="Select a week in the monthly schedule"></select></div>
-  <div id="teamSummary" class="muted"></div><div id="teamTable" class="table-wrap"></div><div class="audit-panel"><h3>Schedule & Operations History</h3><div class="muted" style="font-size:.8rem;margin-bottom:8px">Published weeks are preserved automatically once all seven days have complete crew assignments. Supervisor changes are recorded separately.</div><div id="operationsLog"><div class="audit-empty">Loading operations history…</div></div></div><div class="team-caption" id="teamHoursNote">AM 7:00 AM–3:00 PM · PM 9:00 AM–5:00 PM · Each shift is 8 hours, including a 1-hour paid lunch.</div>
+  <div id="teamSummary" class="muted"></div><div id="teamTable" class="table-wrap"></div><div class="audit-panel"><h3>Schedule & Operations History</h3><div class="muted" style="font-size:.8rem;margin-bottom:8px">Completed past weeks are archived automatically and removed from the active roster tab to keep it compact. Whole Team and My Week still include archived history. Current and future weeks stay editable. Supervisor changes are recorded separately.</div><div id="operationsLog"><div class="audit-empty">Loading operations history…</div></div></div><div class="team-caption" id="teamHoursNote">AM 7:00 AM–3:00 PM · PM 9:00 AM–5:00 PM · Each shift is 8 hours, including a 1-hour paid lunch.</div>
 </section>
 </main>
 <footer><span>Staff Rotation · Cabo Real Surf Club</span><span id="updatedLabel">Waiting for first data refresh</span></footer>
@@ -967,8 +967,14 @@ function scheduledCrewForHour(day,h){
  return names;
 }
 function parseEmployees(){
- // The published roster is fixed: keep every name pill, dropdown, and crew filter
- // aligned to the approved 16-person list regardless of stale/extra sheet rows.
+ // Derive the roster from the same Monthly Employee Schedule payload used by
+ // Whole Team, so My Week, crew pills, and daily crew cannot drift apart.
+ const source=echoData?.['Monthly Employee Schedule']?.employees;
+ if(Array.isArray(source)){
+  const names=source.map(x=>canonicalStaffName(x?.name||x?.Employee||x?.Name)||String(x?.name||x?.Employee||x?.Name||'').trim()).filter(Boolean);
+  const unique=[...new Set(names)];
+  if(unique.length)return unique;
+ }
  return [...STAFF_NAMES];
 }function parts(){return Object.fromEntries(new Intl.DateTimeFormat("en-US",{timeZone:CABO_TZ,weekday:"long",hour:"2-digit",minute:"2-digit",hour12:false,month:"short",day:"numeric"}).formatToParts(new Date()).map(p=>[p.type,p.value]))}
 function currentDay(){return parts().weekday}function currentHour(){return Number(parts().hour)}
@@ -1165,7 +1171,7 @@ function renderTeam(){
  teamViewButtons();
  const pillHost=$("teamEmployeePills");pillHost.innerHTML="";
  const clear=document.createElement("button");clear.className="pill"+(!highlightedTeamEmployee?" selected":"");clear.textContent="Clear";clear.onclick=()=>{highlightedTeamEmployee="";renderTeam()};pillHost.appendChild(clear);
- STAFF_NAMES.forEach(name=>{const b=document.createElement("button");b.className="pill"+(normalize(highlightedTeamEmployee)===normalize(name)?" selected":"");b.textContent=name;b.onclick=()=>{highlightedTeamEmployee=normalize(highlightedTeamEmployee)===normalize(name)?"":name;renderTeam()};pillHost.appendChild(b)});
+ employees.forEach(name=>{const b=document.createElement("button");b.className="pill"+(normalize(highlightedTeamEmployee)===normalize(name)?" selected":"");b.textContent=name;b.onclick=()=>{highlightedTeamEmployee=normalize(highlightedTeamEmployee)===normalize(name)?"":name;renderTeam()};pillHost.appendChild(b)});
  const host=$("teamTable");host.innerHTML="";
  if(teamViewMode==="month"){
   host.classList.add("month-view");
