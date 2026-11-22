@@ -1569,9 +1569,16 @@ async function fetchData(){
   }finally{clearTimeout(timeoutId)}
   if(!res.ok)throw Error("Apps Script request failed (HTTP "+res.status+").");
   phase="reading Apps Script JSON";
-  const response=await res.json();
+  const responseText=await res.text();
+  let response;
+  try{response=JSON.parse(responseText)}
+  catch(parseError){
+   const preview=String(responseText||"").replace(/\\s+/g," ").slice(0,180);
+   throw Error("Apps Script did not return JSON. Check the web-app deployment and access permissions. Response: "+(preview||"empty response"));
+  }
   if(requestSequence!==fetchSequence)return;
   if(!response||typeof response!=="object")throw Error("Apps Script returned invalid JSON.");
+  if(response.ok===false)throw Error(response.error||response.message||"Apps Script returned an error.");
   if(response.status&&String(response.status).toLowerCase()!=="success")throw Error(response.message||"Apps Script reported an unsuccessful response.");
   const sheets=normalizeAppsScriptSheets(response);
   const required=["Weekly Schedule","AM Hourly Rotation","PM Hourly Rotation"];
