@@ -1063,6 +1063,10 @@ function weeklyScheduleRows(){return parseSheet("Weekly Schedule").map(r=>({
  notes:String(field(r,["Notes","Note"])||"").trim()
 })).filter(r=>r.employee&&r.day&&r.shift)}
 function weeklyRows(){return weeklyScheduleRows().filter(r=>! /^(off|day off|days off)$/i.test(r.shift))}
+function fullHourForWeek_(hour){
+ const h=((Number(hour)%24)+24)%24;
+ return `${h%12||12}:00 ${h<12?"AM":"PM"}`;
+}
 function renderWeek(){
  const name=$("weekEmployee").value,day=$("weekDay").value;
  // Keep OFF rows: My Week must always render all seven weekdays, not only days with shifts.
@@ -1109,27 +1113,25 @@ function renderWeek(){
    }
    return {title:"POOL PARTY COVERAGE",subtitle:"Party assignments not published for this date",kind:"missing"};
   }
-  // Prefer the structured rotation objects returned directly by Apps Script.
-  // This avoids losing employee/position pairs while flattening AM and PM rows.
-  const apiRoot=echoData?.data||echoData||{};
-  const apiWeek=apiRoot["Weekly Schedule"];
-  const apiDay=Array.isArray(apiWeek?.days)?apiWeek.days.find(x=>normalize(x.day)===normalize(d)):null;
-  const apiRotation=/^AM/i.test(shift)?apiDay?.amRotation:apiDay?.pmRotation;
-  const apiRow=apiRotation?.rows?.find(x=>hourStart(x.hour)===h);
-  const apiAssignment=(apiRow?.assignments||[]).find(x=>normalize(x.employee)===normalize(employee));
-  if(apiAssignment){
-   const position=String(apiAssignment.position||"");
-   const roleIndex=roles.findIndex(role=>role.aliases.some(alias=>normalize(alias)===normalize(position)));
-   if(roleIndex>=0){const role=roles[roleIndex];return {title:role.title,subtitle:role.subtitle,kind:role.kind};}
-   if(/^Surf Coach Zone/.test(position)){const zone=position.replace(/[^0-9]/g,"");return {title:"SURF COACH",subtitle:`Zone ${zone}`,kind:"blue"};}
-   if(/^Control Tower/.test(position))return {title:"CONTROL TOWER",subtitle:position.replace("Control Tower ","Tower "),kind:"orange"};
-   if(/^Board Room/.test(position))return {title:position.toUpperCase(),subtitle:"Check in / check out",kind:"green"};
-  }
-  const normalizedRow=(allRows||[]).find(x=>normalize(x.day)===normalize(d)&&hourStart(x.time)===h);
+  // Use the exact same normalized date/hour row as Live Board (findRow).
+  // Do not read the separate structured Weekly Schedule object here: that was
+  // a second data path and could display a different position from Live Board.
+  const normalizedRow=findRow(d,fullHourForWeek_(h));
   if(normalizedRow){
-   const assigned=regularPositionValues(normalizedRow);
-   const roleIndex=assigned.findIndex(v=>splitNames(v).some(n=>normalize(n)===normalize(employee)));
-   if(roleIndex>=0){const role=roles[roleIndex];return {title:role.title,subtitle:role.subtitle,kind:role.kind};}
+   const assignedPosition=Object.entries(normalizedRow.positions||{}).find(([position,value])=>
+    !["Opening Duty","Closing Duty"].includes(position) &&
+    splitNames(value).some(n=>normalize(n)===normalize(employee))
+   )?.[0]||"";
+   if(assignedPosition){
+    const roleIndex=roles.findIndex(role=>role.aliases.some(alias=>normalize(alias)===normalize(assignedPosition)));
+    if(roleIndex>=0){const role=roles[roleIndex];return {title:role.title,subtitle:role.subtitle,kind:role.kind};}
+    if(/^Surf Coach Zone/i.test(assignedPosition)){
+     const zone=assignedPosition.replace(/[^0-9]/g,"");
+     return {title:"SURF COACH",subtitle:`Zone ${zone}`,kind:"blue"};
+    }
+    if(/^Control Tower/i.test(assignedPosition))return {title:"CONTROL TOWER",subtitle:assignedPosition.replace("Control Tower ","Tower "),kind:"orange"};
+    if(/^Board Room/i.test(assignedPosition))return {title:assignedPosition.toUpperCase(),subtitle:"Check in / check out",kind:"green"};
+   }
   }
   return null;
  };
