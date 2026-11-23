@@ -796,7 +796,7 @@ header .brand{margin-bottom:8px}
   <div class="team-caption"><strong>Whole team</strong> · switch between the current week and the monthly schedule. In MONTH, use the week dropdown to show one week at a time. Tap a name to highlight their row.</div>
   <div class="team-view-toggle" role="group" aria-label="Schedule view"><button type="button" class="team-view-btn active" data-team-view="week">WEEK</button><button type="button" class="team-view-btn" data-team-view="month">MONTH</button></div>
   <div id="teamMonthWeekFilter" class="team-month-week-filter hidden"><label for="teamMonthSelect">Month</label><select id="teamMonthSelect" aria-label="Select a month in the monthly schedule"></select><label for="teamWeekSelect">Show week</label><select id="teamWeekSelect" aria-label="Select a week in the monthly schedule"></select></div>
-  <div id="teamSummary" class="muted"></div><div id="teamTable" class="table-wrap"></div><div class="audit-panel"><h3>Schedule & Operations History</h3><div class="muted" style="font-size:.8rem;margin-bottom:8px">Completed past weeks are archived automatically and removed from the active roster tab to keep it compact. Whole Team and My Week still include archived history. Current and future weeks stay editable. Supervisor changes are recorded separately.</div><div id="operationsLog"><div class="audit-empty">Loading operations history…</div></div></div><div class="team-caption" id="teamHoursNote">AM 7:00 AM–3:00 PM · PM 8:00 AM–4:00 PM · Each shift is 8 hours, including a 1-hour paid lunch.</div>
+  <div id="teamSummary" class="muted"></div><div id="teamTable" class="table-wrap"></div><div class="audit-panel"><h3>Schedule & Operations History</h3><div class="muted" style="font-size:.8rem;margin-bottom:8px">Completed past weeks are archived automatically and removed from the active roster tab to keep it compact. Whole Team and My Week still include archived history. Current and future weeks stay editable. Supervisor changes are recorded separately.</div><div id="operationsLog"><div class="audit-empty">Loading operations history…</div></div></div><div class="team-caption" id="teamHoursNote">AM 7:00 AM–3:00 PM · PM 9:00 AM–5:00 PM · Each shift is 8 hours, including a 1-hour paid lunch.</div>
 </section>
 </main>
 <footer><span>Staff Rotation · Cabo Real Surf Club</span><span id="updatedLabel">Waiting for first data refresh</span></footer>
@@ -1058,8 +1058,8 @@ function weeklyScheduleRows(){return parseSheet("Weekly Schedule").map(r=>({
  type:String(field(r,["Employment Type","Type"])||"").trim(),
  day:String(field(r,["Day","Weekday"])||"").trim(),
  shift:String(field(r,["Shift","Shift Type"])||"").trim(),
- start:String(field(r,["Start","Start Time"])||(/^(am|am crew|morning)$/i.test(String(field(r,["Shift","Shift Type"])||"").trim())?"7:00 AM":/^(pm|pm crew|afternoon)$/i.test(String(field(r,["Shift","Shift Type"])||"").trim())?"8:00 AM":"")).trim(),
- end:String(field(r,["End","End Time"])||(/^(am|am crew|morning)$/i.test(String(field(r,["Shift","Shift Type"])||"").trim())?"3:00 PM":/^(pm|pm crew|afternoon)$/i.test(String(field(r,["Shift","Shift Type"])||"").trim())?"4:00 PM":"")).trim(),
+ start:(/^(pm|pm crew|afternoon)$/i.test(String(field(r,["Shift","Shift Type"])||"").trim())?"9:00 AM":field(r,["Start","Start Time"])||(/^(am|am crew|morning)$/i.test(String(field(r,["Shift","Shift Type"])||"").trim())?"7:00 AM":"")).toString().trim(),
+ end:(/^(pm|pm crew|afternoon)$/i.test(String(field(r,["Shift","Shift Type"])||"").trim())?"5:00 PM":field(r,["End","End Time"])||(/^(am|am crew|morning)$/i.test(String(field(r,["Shift","Shift Type"])||"").trim())?"3:00 PM":"")).toString().trim(),
  notes:String(field(r,["Notes","Note"])||"").trim()
 })).filter(r=>r.employee&&r.day&&r.shift)}
 function weeklyRows(){return weeklyScheduleRows().filter(r=>! /^(off|day off|days off)$/i.test(r.shift))}
@@ -1342,7 +1342,7 @@ function cardAssignments(row,day,time){
  if(start===7||start===16){
   const duty=start===7?"Opening Duty":"Closing Duty";
   const names=splitNames(row?.positions?.[duty]||"");
-  return names.map((name,i)=>({title:start===7?"OPENING":"CLOSING",subtitle:`Staff duty · ${start===7?"7:00–8:00 AM":"4:00–5:00 PM"}`,name,color:"white",number:i+1}));
+  return names.map((name,i)=>({title:start===7?"OPENING DUTIES":"CLOSING DUTIES",subtitle:`Staff duty · ${start===7?"7:00–8:00 AM":"4:00–5:00 PM"}`,name,color:"white",number:i+1}));
  }
  const defs=[
   {title:"SURF COACH",subtitle:"Zone 1",color:"blue"},
