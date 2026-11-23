@@ -796,7 +796,7 @@ header .brand{margin-bottom:8px}
   <div class="team-caption"><strong>Whole team</strong> · switch between the current week and the monthly schedule. In MONTH, use the week dropdown to show one week at a time. Tap a name to highlight their row.</div>
   <div class="team-view-toggle" role="group" aria-label="Schedule view"><button type="button" class="team-view-btn active" data-team-view="week">WEEK</button><button type="button" class="team-view-btn" data-team-view="month">MONTH</button></div>
   <div id="teamMonthWeekFilter" class="team-month-week-filter hidden"><label for="teamMonthSelect">Month</label><select id="teamMonthSelect" aria-label="Select a month in the monthly schedule"></select><label for="teamWeekSelect">Show week</label><select id="teamWeekSelect" aria-label="Select a week in the monthly schedule"></select></div>
-  <div id="teamSummary" class="muted"></div><div id="teamTable" class="table-wrap"></div><div class="audit-panel"><h3>Schedule & Operations History</h3><div class="muted" style="font-size:.8rem;margin-bottom:8px">Completed past weeks are archived automatically and removed from the active roster tab to keep it compact. Whole Team and My Week still include archived history. Current and future weeks stay editable. Supervisor changes are recorded separately.</div><div id="operationsLog"><div class="audit-empty">Loading operations history…</div></div></div><div class="team-caption" id="teamHoursNote">AM 7:00 AM–3:00 PM · PM 9:00 AM–5:00 PM · Each shift is 8 hours, including a 1-hour paid lunch.</div>
+  <div id="teamSummary" class="muted"></div><div id="teamTable" class="table-wrap"></div><div class="audit-panel"><h3>Schedule & Operations History</h3><div class="muted" style="font-size:.8rem;margin-bottom:8px">Completed past weeks are archived automatically and removed from the active roster tab to keep it compact. Whole Team and My Week still include archived history. Current and future weeks stay editable. Supervisor changes are recorded separately.</div><div id="operationsLog"><div class="audit-empty">Loading operations history…</div></div></div><div class="team-caption" id="teamHoursNote">AM 7:00 AM–3:00 PM · PM 8:00 AM–4:00 PM · Each shift is 8 hours, including a 1-hour paid lunch.</div>
 </section>
 </main>
 <footer><span>Staff Rotation · Cabo Real Surf Club</span><span id="updatedLabel">Waiting for first data refresh</span></footer>
@@ -1008,7 +1008,7 @@ const partyCoverageFor=(day,h)=>{
  if(all.some(n=>!n)||new Set(all.map(normalize)).size!==10)return null;
  return {pool,tower,board,positions:all,coreShift:"PM",extraShift:"AM"};
 };
-function shiftStatusForHour(h){return h===7?"Opening":h===16?"Closing":null}
+function shiftStatusForHour(h){return h===7?"Opening":h===15?"Closing":null}
 function makeShiftStatusCard(label){const card=document.createElement("article");card.className="assignment-card white-status";card.innerHTML=`<div class="assignment-head"><span>•</span><div><b>${label.toUpperCase()}</b><small>Club operations</small></div></div><div class="assignment-name">${label}</div>`;return card}
 function renderBoard(){
  const day=$("daySelect").value,time=$("hourSelect").value,row=findRow(day,time),h=hourStart(time),p=row?.positions||{};
@@ -1058,8 +1058,8 @@ function weeklyScheduleRows(){return parseSheet("Weekly Schedule").map(r=>({
  type:String(field(r,["Employment Type","Type"])||"").trim(),
  day:String(field(r,["Day","Weekday"])||"").trim(),
  shift:String(field(r,["Shift","Shift Type"])||"").trim(),
- start:String(field(r,["Start","Start Time"])||(/^(am|am crew|morning)$/i.test(String(field(r,["Shift","Shift Type"])||"").trim())?"7:00 AM":/^(pm|pm crew|afternoon)$/i.test(String(field(r,["Shift","Shift Type"])||"").trim())?"9:00 AM":"")).trim(),
- end:String(field(r,["End","End Time"])||(/^(am|am crew|morning)$/i.test(String(field(r,["Shift","Shift Type"])||"").trim())?"3:00 PM":/^(pm|pm crew|afternoon)$/i.test(String(field(r,["Shift","Shift Type"])||"").trim())?"5:00 PM":"")).trim(),
+ start:String(field(r,["Start","Start Time"])||(/^(am|am crew|morning)$/i.test(String(field(r,["Shift","Shift Type"])||"").trim())?"7:00 AM":/^(pm|pm crew|afternoon)$/i.test(String(field(r,["Shift","Shift Type"])||"").trim())?"8:00 AM":"")).trim(),
+ end:String(field(r,["End","End Time"])||(/^(am|am crew|morning)$/i.test(String(field(r,["Shift","Shift Type"])||"").trim())?"3:00 PM":/^(pm|pm crew|afternoon)$/i.test(String(field(r,["Shift","Shift Type"])||"").trim())?"4:00 PM":"")).trim(),
  notes:String(field(r,["Notes","Note"])||"").trim()
 })).filter(r=>r.employee&&r.day&&r.shift)}
 function weeklyRows(){return weeklyScheduleRows().filter(r=>! /^(off|day off|days off)$/i.test(r.shift))}
@@ -1089,11 +1089,12 @@ function renderWeek(){
   hourStart(field(x,["Pool Party Hour","Hour","Time","Time Slot"]))===h
  );
  const positionFor=(d,shift,h,employee)=>{
-  if(h===7||h===16){
+  if(h===7||h===15){
    const duty=h===7?"Opening Duty":"Closing Duty";
-   const dutyRow=(allRows||[]).find(x=>normalize(x.day)===normalize(d)&&hourStart(x.time)===h);
-   const dutyNames=splitNames(dutyRow?.positions?.[duty]||"");
-   if(dutyNames.some(n=>normalize(n)===normalize(employee)))return {title:h===7?"OPENING DUTIES":"CLOSING DUTIES",subtitle:h===7?"Staff duty · 7:00–8:00 AM":"Staff duty · 4:00–5:00 PM",kind:"white"};
+   const dutyRows=sheetRows(h===7?"AM Hourly Rotation":"PM Hourly Rotation");
+   const dutyRow=dutyRows.find(x=>normalize(x.day)===normalize(d)&&hourStart(x.hour||x.time)===h);
+   const dutyNames=splitNames(field(dutyRow,[duty])||"");
+   if(dutyNames.some(n=>normalize(n)===normalize(employee)))return {title:h===7?"OPENING DUTIES":"CLOSING DUTIES",subtitle:h===7?"Staff duty · 7:00–8:00 AM":"Staff duty · 3:00–4:00 PM",kind:"white"};
    return {title:"DUTY NOT ASSIGNED",subtitle:"No opening/closing assignment found for this employee",kind:"missing"};
   }
   if(h===12){
@@ -1109,7 +1110,8 @@ function renderWeek(){
    }
    return {title:"POOL PARTY COVERAGE",subtitle:"Party assignments not published for this date",kind:"missing"};
   }
-  const normalizedRow=(allRows||[]).find(x=>normalize(x.day)===normalize(d)&&hourStart(x.time)===h);
+  const rotationRows=sheetRows(/^AM/i.test(shift)?"AM Hourly Rotation":"PM Hourly Rotation");
+  const normalizedRow=rotationRows.find(x=>normalize(x.day)===normalize(d)&&hourStart(x.hour||x.time)===h);
   if(normalizedRow){
    const assigned=regularPositionValues(normalizedRow);
    const roleIndex=assigned.findIndex(v=>splitNames(v).some(n=>normalize(n)===normalize(employee)));
@@ -1118,6 +1120,7 @@ function renderWeek(){
   return null;
  };
  rows.forEach(({day:d,row:r})=>{
+  try {
   const section=document.createElement("article");section.className="week-day-card";
   const head=document.createElement("div");head.className="week-day-head";
   const title=document.createElement("h3");title.textContent=d;head.appendChild(title);
@@ -1152,6 +1155,19 @@ function renderWeek(){
    }
   }
   section.appendChild(grid);host.appendChild(section);
+  } catch(dayError) {
+   console.error("My Week day failed to render:",d,dayError);
+   const fallback=document.createElement("article");fallback.className="week-day-card";
+   const head=document.createElement("div");head.className="week-day-head";
+   const title=document.createElement("h3");title.textContent=d;head.appendChild(title);
+   const badge=document.createElement("span");badge.className="week-day-shift shift-off";badge.textContent="DISPLAY ERROR";head.appendChild(badge);
+   const grid=document.createElement("div");grid.className="week-assignment-grid";
+   const card=document.createElement("article");card.className="week-assignment-card missing";
+   const time=document.createElement("div");time.className="week-assignment-time";time.textContent="SCHEDULE";
+   const label=document.createElement("div");label.className="week-assignment-title";label.textContent="DAY COULD NOT RENDER";
+   const sub=document.createElement("div");sub.className="week-assignment-subtitle";sub.textContent=String(dayError?.message||dayError||"Unknown display error");
+   card.append(time,label,sub);grid.appendChild(card);fallback.append(head,grid);host.appendChild(fallback);
+  }
  });
 }
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
@@ -1323,10 +1339,10 @@ function coverageRowsFor(day,time){
 }
 function cardAssignments(row,day,time){
  const start=hourStart(time);
- if(start===7||start===16){
+ if(start===7||start===15){
   const duty=start===7?"Opening Duty":"Closing Duty";
   const names=splitNames(row?.positions?.[duty]||"");
-  return names.map((name,i)=>({title:start===7?"OPENING":"CLOSING",subtitle:`Staff duty · ${start===7?"7:00–8:00 AM":"4:00–5:00 PM"}`,name,color:"white",number:i+1}));
+  return names.map((name,i)=>({title:start===7?"OPENING":"CLOSING",subtitle:`Staff duty · ${start===7?"7:00–8:00 AM":"3:00–4:00 PM"}`,name,color:"white",number:i+1}));
  }
  const defs=[
   {title:"SURF COACH",subtitle:"Zone 1",color:"blue"},
