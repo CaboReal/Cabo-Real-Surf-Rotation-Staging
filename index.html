@@ -892,7 +892,8 @@ function rowToAssignment(r,source){
  if(/^(opening|closing)$/i.test(type)){
   positions[type.toLowerCase()==="opening"?"Opening Duty":"Closing Duty"]=String(field(r,["Opening Duty","Closing Duty","Assignments"])||"").trim();
  }
- return {day,time,positions,source,raw:r};
+ const date=String(field(r,["Date","ISO Date","Schedule Date"])||"").trim();
+ return {day,date,time,positions,source,raw:r};
 }
 function isEmployeeOff(day,name){
  const key=normalize(name);
@@ -910,7 +911,7 @@ function getAllAssignments(){
   .filter(r=>r.day&&r.time);
  const grouped=new Map();
  raw.forEach(r=>{
-  const hour=hourStart(r.time),key=normalize(r.day)+"|"+hour;
+  const hour=hourStart(r.time),key=(r.date||normalize(r.day))+"|"+hour;
   if(!grouped.has(key)){
    grouped.set(key,{...r,sourceRows:[r],assignmentErrors:[]});
    return;
@@ -981,7 +982,7 @@ function currentDay(){return parts().weekday}function currentHour(){return Numbe
 function timeText(){return new Intl.DateTimeFormat("en-US",{timeZone:CABO_TZ,hour:"2-digit",minute:"2-digit",hour12:true}).format(new Date())}
 function hourStart(s){const m=String(s||"").match(/(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?/i);if(!m)return -1;let h=+m[1];const ap=(m[3]||"").toUpperCase();if(ap==="PM"&&h<12)h+=12;if(ap==="AM"&&h===12)h=0;if(!ap&&h>=1&&h<=6)h+=12;return h}
 function shortHour(s){const h=hourStart(s);if(h<0)return String(s||"");const hour=h%12||12;return hour+(h<12?"a":"p")}
-function findRow(day,time){const candidates=allRows.filter(r=>normalize(r.day)===normalize(day));return candidates.find(r=>hourStart(r.time)===hourStart(time))||null}
+function findRow(day,time,date){const candidates=allRows.filter(r=>(date?String(r.date||"")===String(date):normalize(r.day)===normalize(day)));return candidates.find(r=>hourStart(r.time)===hourStart(time))||null}
 function connected(ok,msg){$("connectionDot").className="dot "+(ok?"ok":"bad");$("connectionText").textContent=msg}
 function renderPills(){const host=$("employeePills");host.innerHTML="";employees.forEach(name=>{const b=document.createElement("button");b.className="pill"+(selectedEmployee===name?" selected":"");b.textContent=name;b.setAttribute("aria-pressed",String(selectedEmployee===name));b.onclick=()=>{selectedEmployee=selectedEmployee===name?"":name;renderAll()};host.appendChild(b)})}
 function staffTag(name){const b=document.createElement("button");b.className="staff-tag"+(selectedEmployee===name?" highlight":"");b.textContent=name;b.onclick=()=>{selectedEmployee=selectedEmployee===name?"":name;renderAll()};return b}
@@ -993,10 +994,10 @@ const partyPositionDefs=[
  {name:"Surf Coach Zone 2",group:"pool"},{name:"Surf Coach Zone 3",group:"pool"},{name:"Surf Coach Zone 4",group:"pool"},
  {name:"Control Tower B",group:"tower"},{name:"Board Room C",group:"board"}
 ];
-const partyCoverageFor=(day,h)=>{
+const partyCoverageFor=(day,h,date)=>{
  // Prefer the exact 10-person pool-party allocation published by Apps Script.
  const row=parseSheet("Pool Party Coverage").find(r=>
-  normalize(field(r,["Day","Weekday","Day Name"]))===normalize(day)&&
+  (date?String(field(r,["Date","ISO Date","Schedule Date"])||"").trim()===String(date):normalize(field(r,["Day","Weekday","Day Name"]))===normalize(day))&&
   hourStart(field(r,["Pool Party Hour","Hour","Time","Time Slot"]))===h
  );
  if(!row)return null;
@@ -1011,7 +1012,7 @@ const partyCoverageFor=(day,h)=>{
 function shiftStatusForHour(h){return h===7?"Opening":h===16?"Closing":null}
 function makeShiftStatusCard(label){const card=document.createElement("article");card.className="assignment-card white-status";card.innerHTML=`<div class="assignment-head"><span>•</span><div><b>${label.toUpperCase()}</b><small>Club operations</small></div></div><div class="assignment-name">${label}</div>`;return card}
 function renderBoard(){
- const day=$("daySelect").value,time=$("hourSelect").value,row=findRow(day,time),h=hourStart(time),p=row?.positions||{};
+ const day=$("daySelect").value,time=$("hourSelect").value,row=findRow(day,time,selectedDateISO),h=hourStart(time),p=row?.positions||{};
  const poolImage=$("poolAerialImage");
  const fiveStaffImage=[8,11,13,15].includes(h);
  if(poolImage){
@@ -1020,7 +1021,7 @@ function renderBoard(){
  }
  const shiftStatus=shiftStatusForHour(h);
  const party=h===12;
- const coverage=party?partyCoverageFor(day,h):null;
+ const coverage=party?partyCoverageFor(day,h,selectedDateISO):null;
  const regular=regularPositionValues(row);
  fill("pusher",shiftStatus?[]:[party?coverage?.pool[0]:regular[0]]);
  fill("catcher",shiftStatus?[]:[party?coverage?.pool[4]:regular[1]]);
@@ -1081,27 +1082,30 @@ function renderWeek(){
  const host=$("weekTable");host.innerHTML="";
  if(!name){host.innerHTML='<div class="empty-state">Choose an employee to view the weekly schedule.</div>';return}
  const roles=[
+  // Match only the actual position name. Zone 2/3/4 are distinct Surf Coach
+  // positions, not aliases for Board Room B/A or Control Tower A. Aliasing
+  // them caused My Week to display duplicate-looking positions for one person.
   {key:"Surf Coach Zone 1",aliases:["Surf Coach Zone 1","Pool Pusher (Zone 1)","Zone 1"],title:"SURF COACH",subtitle:"Zone 1 · left side",kind:"blue"},
   {key:"Surf Coach Zone 5",aliases:["Surf Coach Zone 5","Pool Catcher (Zone 5)","Zone 5"],title:"SURF COACH",subtitle:"Zone 5 · right side",kind:"blue"},
-  {key:"Control Tower A",aliases:["Control Tower A","Tower A","Control Tower","Surf Coach Zone 4","Zone 4"],title:"CONTROL TOWER",subtitle:"Tower A",kind:"orange"},
-  {key:"Board Room A",aliases:["Board Room A","Surf Coach Zone 3","Zone 3"],title:"BOARD ROOM A",subtitle:"Check in / check out",kind:"green"},
-  {key:"Board Room B",aliases:["Board Room B","Surf Coach Zone 2","Zone 2"],title:"BOARD ROOM B",subtitle:"Check in / check out",kind:"green"}
+  {key:"Control Tower A",aliases:["Control Tower A","Tower A","Control Tower"],title:"CONTROL TOWER",subtitle:"Tower A",kind:"orange"},
+  {key:"Board Room A",aliases:["Board Room A"],title:"BOARD ROOM A",subtitle:"Check in / check out",kind:"green"},
+  {key:"Board Room B",aliases:["Board Room B"],title:"BOARD ROOM B",subtitle:"Check in / check out",kind:"green"}
  ];
  const sheetRows=sheetName=>parseSheet(sheetName);
  const poolPartyFor=(d,h)=>sheetRows("Pool Party Coverage").find(x=>
   normalize(field(x,["Day","Weekday","Day Name"]))===normalize(d)&&
   hourStart(field(x,["Pool Party Hour","Hour","Time","Time Slot"]))===h
  );
- const positionFor=(d,shift,h,employee)=>{
+ const positionFor=(d,shift,h,employee,exactDate)=>{
   if(h===7||h===16){
    const duty=h===7?"Opening Duty":"Closing Duty";
-   const dutyRow=(allRows||[]).find(x=>normalize(x.day)===normalize(d)&&hourStart(x.time)===h);
+   const dutyRow=(allRows||[]).find(x=>String(x.date||"")===String(exactDate)&&hourStart(x.time)===h);
    const dutyNames=splitNames(dutyRow?.positions?.[duty]||"");
    if(dutyNames.some(n=>normalize(n)===normalize(employee)))return {title:h===7?"OPENING DUTIES":"CLOSING DUTIES",subtitle:h===7?"Staff duty · 7:00–8:00 AM":"Staff duty · 4:00–5:00 PM",kind:"white"};
    return {title:"DUTY NOT ASSIGNED",subtitle:"No opening/closing assignment found for this employee",kind:"missing"};
   }
   if(h===12){
-   const c=partyCoverageFor(d,h);
+   const c=partyCoverageFor(d,h,exactDate);
    if(c){
     const pool=c.pool,tower=c.tower,board=c.board;
     const pi=pool.findIndex(n=>normalize(n)===normalize(employee));
@@ -1116,7 +1120,7 @@ function renderWeek(){
   // Use the exact same normalized date/hour row as Live Board (findRow).
   // Do not read the separate structured Weekly Schedule object here: that was
   // a second data path and could display a different position from Live Board.
-  const normalizedRow=findRow(d,fullHourForWeek_(h));
+  const normalizedRow=findRow(d,fullHourForWeek_(h),exactDate);
   if(normalizedRow){
    const assignedPosition=Object.entries(normalizedRow.positions||{}).find(([position,value])=>
     !["Opening Duty","Closing Duty"].includes(position) &&
@@ -1162,7 +1166,7 @@ function renderWeek(){
     if((/^AM/i.test(r.shift)&&h===11)||(/^PM/i.test(r.shift)&&h===13)){
      card.classList.add("lunch");label.textContent="LUNCH BREAK";sub.textContent="Paid lunch break";
     }else{
-     const position=positionFor(d,/^AM/i.test(r.shift)?"AM":"PM",h,name);
+     const position=positionFor(d,/^AM/i.test(r.shift)?"AM":"PM",h,name,isoAddDays(weekStartISO,DAYS.findIndex(x=>normalize(x)===normalize(d))));
      if(position){card.classList.add(position.kind);label.textContent=position.title;sub.textContent=position.subtitle;}
      else{card.classList.add("missing");label.textContent="CHECK SCHEDULE";sub.textContent="No hourly position assignment found for this hour";}
     }
@@ -1262,7 +1266,7 @@ function sessionNameFor(day,time){
  const index=mix.hours.findIndex(h=>hourStart(h)===hour);
  return index>=0?String(mix.sessions[index]||""):"";
 }
-function nextRow(day,time){const rows=allRows.filter(r=>normalize(r.day)===normalize(day)).sort((a,b)=>hourStart(a.time)-hourStart(b.time));const i=rows.findIndex(r=>r.time===time||hourStart(r.time)===hourStart(time));return i>=0?rows[i+1]||null:null}
+function nextRow(day,time,date){const rows=allRows.filter(r=>(date?String(r.date||"")===String(date):normalize(r.day)===normalize(day))).sort((a,b)=>hourStart(a.time)-hourStart(b.time));const i=rows.findIndex(r=>r.time===time||hourStart(r.time)===hourStart(time));return i>=0?rows[i+1]||null:null}
 function regularPositionValues(row){
  const p=row?.positions||{};
  return [
@@ -1289,7 +1293,7 @@ function makeAssignmentCard(index,title,subtitle,name,small=false,color=null){
 }
 function renderSchedule(){
  const host=$("hourlySchedule");if(!host)return;host.innerHTML="";
- const day=$("daySelect").value,rows=allRows.filter(r=>normalize(r.day)===normalize(day)).sort((a,b)=>hourStart(a.time)-hourStart(b.time));
+ const day=$("daySelect").value,rows=allRows.filter(r=>String(r.date||"")===String(selectedDateISO)).sort((a,b)=>hourStart(a.time)-hourStart(b.time));
  if(!rows.length){host.innerHTML='<div class="empty-state">No hourly rotation rows found for this day.</div>';return}
  const heads=["TIME","SESSION","SURF COACH · ZONE 1","SURF COACH · ZONE 5","CONTROL TOWER A","BOARD ROOM A","BOARD ROOM B","SURF COACH · ZONE 2","SURF COACH · ZONE 3","SURF COACH · ZONE 4","CONTROL TOWER B","BOARD ROOM C"];
  const table=document.createElement("table");table.innerHTML="<thead><tr>"+heads.map(h=>`<th>${esc(h)}</th>`).join("")+"</tr></thead>";
@@ -1309,7 +1313,7 @@ function renderSchedule(){
    tr.appendChild(dutyTd);body.appendChild(tr);return;
   }
   else if(partyHour){
-   const coverage=partyCoverageFor(day,start);
+   const coverage=partyCoverageFor(day,start,selectedDateISO);
    if(coverage){
     const pool=coverage.pool,tower=coverage.tower,board=coverage.board;
     [pool[0],pool[4],tower[0],board[0],board[1],pool[1],pool[2],pool[3],tower[1],board[2]].forEach((n,i)=>vals[i]=n||"");
@@ -1361,7 +1365,7 @@ function cardAssignments(row,day,time){
  const startIsParty=start===12;
  let values;
  if(startIsParty){
-  const coverage=partyCoverageFor(day,start);
+  const coverage=partyCoverageFor(day,start,selectedDateISO);
   if(!coverage)return [];
   const pool=coverage.pool,tower=coverage.tower,board=coverage.board;
   values=[pool[0],pool[4],tower[0],board[0],board[1],pool[1],pool[2],pool[3],tower[1],board[2]];
@@ -1374,7 +1378,7 @@ function cardAssignments(row,day,time){
   .filter(a=>splitNames(a.name).length>0);
 }
 function renderVisualCards(){
- const day=$("daySelect").value,time=$("hourSelect").value,row=findRow(day,time),p=row?.positions||{};
+ const day=$("daySelect").value,time=$("hourSelect").value,row=findRow(day,time,selectedDateISO),p=row?.positions||{};
  const assignments=cardAssignments(row,day,time),hostCurrent=document.querySelector(".current-panel .assignment-cards");
  hostCurrent.innerHTML="";
  if(row?.assignmentErrors?.length){
@@ -1390,7 +1394,7 @@ function renderVisualCards(){
  assignments.forEach((a,i)=>hostCurrent.appendChild(makeAssignmentCard(i,a.title,a.subtitle,a.name,false,a.color)));
  $("currentHourLabel").textContent=row?hourLabel(row.time):"No shift data";
  $("currentSessionName").textContent=row?(hourStart(row.time)===7?"Opening":hourStart(row.time)===16?"Closing":(sessionNameFor(day,row.time)||"Session not found")):"—";
- const nxt=nextRow(day,time);$("nextHourLabel").textContent=nxt?hourLabel(nxt.time):"No next session";
+ const nxt=nextRow(day,time,selectedDateISO);$("nextHourLabel").textContent=nxt?hourLabel(nxt.time):"No next session";
  $("nextSessionName").textContent=nxt?(hourStart(nxt.time)===7?"Opening":hourStart(nxt.time)===16?"Closing":(sessionNameFor(day,nxt.time)||"Session not found")):"No next session";
  const host=$("nextHourCards");host.innerHTML="";const nextAssignments=cardAssignments(nxt,day,nxt?.time||"");host.classList.toggle("opening-closing-cards",!!nxt&&(hourStart(nxt.time)===7||hourStart(nxt.time)===16));
  nextAssignments.forEach((a,i)=>host.appendChild(makeAssignmentCard(i,a.title,a.subtitle,a.name,true,a.color)));
@@ -1511,9 +1515,9 @@ function normalizeAppsScriptSheets(payload){
    const dayName=d.day||weekday(d.date);
    [ [d.amRotation,weeklyAmRows], [d.pmRotation,weeklyPmRows] ].forEach(([rotation,target])=>{
     if(!rotation||!Array.isArray(rotation.rows))return;
-    rotation.rows.forEach(r=>{const row={Day:dayName,Hour:r.hour||"",Type:r.type||"",RotationStep:r.rotationStep??""};(r.assignments||[]).forEach(a=>appendAssignment(row,a));target.push(row);});
+    rotation.rows.forEach(r=>{const row={Day:dayName,Date:d.date||"",Hour:r.hour||"",Type:r.type||"",RotationStep:r.rotationStep??""};(r.assignments||[]).forEach(a=>appendAssignment(row,a));target.push(row);});
    });
-   if(d.poolParty&&Array.isArray(d.poolParty.rows))d.poolParty.rows.forEach(r=>{const row={Day:dayName,Hour:r.hour||""};(r.assignments||[]).forEach(a=>appendAssignment(row,a));weeklyPartyRows.push(row);});
+   if(d.poolParty&&Array.isArray(d.poolParty.rows))d.poolParty.rows.forEach(r=>{const row={Day:dayName,Date:d.date||"",Hour:r.hour||""};(r.assignments||[]).forEach(a=>appendAssignment(row,a));weeklyPartyRows.push(row);});
   });
   result["Weekly Schedule"]={rows};
   result["AM Hourly Rotation"]={rows:weeklyAmRows};
