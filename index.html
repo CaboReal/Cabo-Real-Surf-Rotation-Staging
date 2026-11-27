@@ -1281,7 +1281,7 @@ function makeAssignmentCard(index,title,subtitle,name,small=false,color=null){
  card.className="assignment-card "+(color||colors[index%colors.length]);
  card.innerHTML=`<div class="assignment-head"><span>${index+1}</span><div><b>${title}</b><small>${subtitle}</small></div></div><div class="assignment-visual"><span class="person-icon" aria-hidden="true"></span></div><div class="assignment-name"></div>`;
  const cleanName=String(name||"").trim();
- const photoNames=new Set(["Kody","Ana","Diana","Felix","Fernando","Green","Linden","Lucho","Makeni","Marley","Pollo","Pomo","Tlaca","Toni","Wikin"]);
+ const photoNames=new Set(["Kody","Ana","Bernardo","Diana","Felix","Fernando","Green","Linden","Lucho","Makeni","Marley","Pollo","Pomo","Tlaca","Toni","Wikin"]);
  const visual=card.querySelector(".assignment-visual");
  if(photoNames.has(cleanName)){
   const img=document.createElement("img");
